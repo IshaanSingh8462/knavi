@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, Shield, X, ChevronLeft, ChevronRight, Flame, Globe2 } from 'lucide-react';
+import { Sparkles, Shield, X, ChevronLeft, ChevronRight, Flame, Globe2, Trash2 } from 'lucide-react';
 import { Level, Streak, User } from '../types/index';
 import Mascot from './Mascot';
 import Trail from './Trail';
 import NodeDetail from './NodeDetail';
-import { authFetch, breakDownNodeFurther, revertLevelCompletion, setTaskPublic } from '../lib/supabase/queries';
+import { authFetch, breakDownNodeFurther, revertLevelCompletion, setTaskPublic, deleteTask } from '../lib/supabase/queries';
+import { sound } from '../lib/sound';
 
 interface JourneyViewProps {
   levels: Level[];
@@ -58,10 +59,14 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
   const [isDecomposing, setIsDecomposing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [togglingPublicKey, setTogglingPublicKey] = useState<string | null>(null);
+  const [confirmDeleteKey, setConfirmDeleteKey] = useState<string | null>(null);
+  const [isDeletingTrail, setIsDeletingTrail] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const handleTogglePublic = async (group: TrailGroup) => {
     if (!group.taskId) return;
     setTogglingPublicKey(group.key);
+    sound.toggleSwitch();
     try {
       const authorName = user?.name?.trim() || (user?.email ? user.email.split('@')[0] : 'A Knavi student');
       await setTaskPublic(group.taskId, !group.isPublic, authorName);
@@ -73,14 +78,36 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
     }
   };
 
+  // Two-step delete: first press arms the confirm state for that specific
+  // trail (and only that one — confirmDeleteKey is keyed per trail, so
+  // arming one trail's delete never affects another), second press
+  // actually deletes. Deleting the task cascades to its levels in Postgres
+  // (see schema.sql), so there's nothing else to clean up client-side
+  // beyond refetching.
+  const handleDeleteTrail = async (group: TrailGroup) => {
+    if (!group.taskId) return;
+    if (confirmDeleteKey !== group.key) {
+      setConfirmDeleteKey(group.key);
+      setDeleteError(null);
+      return;
+    }
+    setIsDeletingTrail(true);
+    setDeleteError(null);
+    try {
+      await deleteTask(group.taskId);
+      sound.discard();
+      setConfirmDeleteKey(null);
+      onRefresh();
+    } catch (err: any) {
+      setDeleteError(err.message || 'Could not delete this trail.');
+      sound.denied();
+    } finally {
+      setIsDeletingTrail(false);
+    }
+  };
+
   const stripRef = useRef<HTMLDivElement>(null);
 
-  // One trail per task — no more aggregated "Academic"/"Light" buckets or
-  // a generic unlabeled "Custom" catch-all. Every task (whether it came
-  // from Weekly Setup or Forge New Task) is its own named, independently
-  // publishable trail, exactly like a custom track always was. This is
-  // also what makes Academic tasks forkable/publishable now, not just
-  // custom ones — there's a real one-to-one task per trail to attach that to.
   const trailGroups: TrailGroup[] = useMemo(() => {
     return tasks
       .slice()
@@ -105,7 +132,10 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
 
   useEffect(() => {
     if (levels.length > 0 && levels.every((l) => l.status === 'complete')) {
-      setIsCelebrationOpen(true);
+      setIsCelebrationOpen((wasOpen) => {
+        if (!wasOpen) sound.fanfare();
+        return true;
+      });
     }
   }, [levels]);
 
@@ -256,7 +286,6 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
         )}
       </AnimatePresence>
 
-      {/* Trail switcher */}
       <div className="flex items-center gap-2 mb-3">
         <button
           type="button"
@@ -292,10 +321,6 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
         </button>
       </div>
 
-      {/* Dual-axis paging: the outer strip scrolls horizontally (snap) to
-          switch trails; each slide scrolls vertically on its own to move
-          up/down that trail — the two never fight each other because the
-          vertical scroll is contained inside each slide, not the strip. */}
       <div ref={stripRef} onScroll={handleStripScroll} className="mountain-strip rounded-2xl">
         {trailGroups.map((g) => (
           <div key={g.key} className="mountain-slide px-0.5">
@@ -306,6 +331,7 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
                 </span>
                 <button
                   type="button"
+                  data-sound="none"
                   role="switch"
                   aria-checked={!!g.isPublic}
                   disabled={togglingPublicKey === g.key}
@@ -324,11 +350,49 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
             <div className="max-h-[65vh] overflow-y-auto rounded-2xl trail-scroll">
               <Trail levels={g.levels} selectedLevelId={expandedLevelId} onSelect={handleSelectLevel} />
             </div>
+
+            {g.taskId && (
+              <div className="mt-3 flex flex-col items-end gap-1.5 px-1">
+                {confirmDeleteKey === g.key ? (
+                  <div className="flex items-center gap-2 flex-wrap justify-end">
+                    <span className="text-xs text-quest-muted">Delete "{g.label}" and all its steps?</span>
+                    <button
+                      type="button"
+                      data-sound="none"
+                      disabled={isDeletingTrail}
+                      onClick={() => handleDeleteTrail(g)}
+                      className="py-1.5 px-3 bg-rose-600 text-white font-sans font-bold text-xs rounded-lg cursor-pointer hover:opacity-90 disabled:opacity-60 transition-opacity"
+                    >
+                      {isDeletingTrail ? 'Deleting...' : 'Confirm Delete'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDeleteKey(null)}
+                      disabled={isDeletingTrail}
+                      className="py-1.5 px-3 text-quest-muted hover:text-ink font-sans font-bold text-xs rounded-lg cursor-pointer border border-quest-border transition-colors disabled:opacity-60"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    data-sound="none"
+                    onClick={() => handleDeleteTrail(g)}
+                    className="flex items-center gap-1.5 text-xs font-sans font-bold text-quest-muted hover:text-rose-600 transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Delete Trail
+                  </button>
+                )}
+                {deleteError && confirmDeleteKey === g.key && (
+                  <p className="text-[11px] text-rose-700">{deleteError}</p>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>
 
-      {/* Bottom panel */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
         <Mascot levels={activeGroup ? activeGroup.levels : []} streakCount={streak.streak_count} />
 
@@ -539,10 +603,12 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
 
                 <button
                   type="button"
+                  data-sound="none"
                   disabled={isDecomposing}
                   onClick={async () => {
                     setIsDecomposing(true);
                     setErrorMessage(null);
+                    sound.generating();
                     try {
                       const res = await authFetch('/api/tasks/decompose_and_add', {
                         method: 'POST',
@@ -560,9 +626,11 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
                       setNewTaskTitle('');
                       setIsTaskConfirmed(false);
                       setShowAddForm(false);
+                      sound.unlock();
                       onRefresh();
                     } catch (err: any) {
                       setErrorMessage(err.message || 'Something went wrong. Please try again.');
+                      sound.denied();
                     } finally {
                       setIsDecomposing(false);
                     }

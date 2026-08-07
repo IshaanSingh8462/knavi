@@ -202,6 +202,19 @@ export async function forkPublicJourney(sourceTask: Task, sourceLevels: Level[])
   return newTask as Task;
 }
 
+// Deletes a task and, via the `on delete cascade` on levels.task_id in
+// schema.sql, all of its levels along with it. Scoped by user_id explicitly
+// rather than relying on RLS alone — same reasoning as getLevels() above.
+export async function deleteTask(taskId: string): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not signed in.');
+
+  const { error } = await supabase.from('tasks').delete().eq('id', taskId).eq('user_id', user.id);
+  if (error) throw error;
+}
+
 export async function getStreak(): Promise<Streak> {
   const {
     data: { user },

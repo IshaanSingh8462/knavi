@@ -8,10 +8,34 @@ import Dashboard from './components/Dashboard';
 import PublicJourneys from './components/PublicJourneys';
 import BrandHero from './components/BrandHero';
 import LandingPage from './components/LandingPage';
+import SoundToggle from './components/SoundToggle';
 
 import { User, Level, Streak, Activity, Task } from './types/index';
 import { supabase, isSupabaseConfigured } from './lib/supabase/client';
 import { signIn, signUp, signOut, getActivities, getLevels, getActivePlan, getTasksForPlan, getStreak, completeLevel } from './lib/supabase/queries';
+import { sound } from './lib/sound';
+
+// Delegated, document-level click sound for every ordinary <button> in the
+// app (nav tabs, add/remove rows, close buttons, etc). Buttons that already
+// play a more specific sound in their own handler (Mark Complete, Break
+// Down Further, toggle switches...) opt out with data-sound="none" so the
+// two don't layer into noise. Installed once, unconditionally, near the
+// top of App so it covers every screen — including the landing page,
+// which renders from inside this same component tree.
+function useGlobalClickSound() {
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      const btn = target.closest('button');
+      if (!btn || btn.hasAttribute('disabled')) return;
+      if (btn.getAttribute('data-sound') === 'none') return;
+      sound.click();
+    };
+    document.addEventListener('click', handler, true);
+    return () => document.removeEventListener('click', handler, true);
+  }, []);
+}
 
 const EMPTY_STREAK: Streak = { id: '', user_id: '', streak_count: 0, last_active_date: null, longest_streak: 0 };
 
@@ -73,6 +97,8 @@ export default function App() {
   const [syncError, setSyncError] = useState<string | null>(null);
 
   const [currentView, setCurrentView] = useState<'journey' | 'dashboard' | 'setup' | 'public'>('journey');
+
+  useGlobalClickSound();
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -423,12 +449,15 @@ export default function App() {
               </div>
               <strong className="font-serif font-black text-xl tracking-tight text-ink">Guest Mode</strong>
             </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-1.5 text-xs text-quest-muted hover:text-quest-accent font-bold cursor-pointer transition-colors"
-            >
-              <LogOut className="w-3.5 h-3.5" /> Exit
-            </button>
+            <div className="flex items-center gap-4">
+              <SoundToggle />
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1.5 text-xs text-quest-muted hover:text-quest-accent font-bold cursor-pointer transition-colors"
+              >
+                <LogOut className="w-3.5 h-3.5" /> Exit
+              </button>
+            </div>
           </div>
         </header>
         <main className="flex-1">
@@ -543,6 +572,7 @@ export default function App() {
               <Flame className="w-4 h-4 text-quest-accent fill-quest-accent" />
               <strong className="font-mono text-ink">{streak.streak_count}d</strong>
             </div>
+            <SoundToggle />
             <button
               onClick={handleLogout}
               className="flex items-center gap-1.5 text-xs text-quest-muted hover:text-quest-accent font-bold cursor-pointer transition-colors"

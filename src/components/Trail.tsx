@@ -2,15 +2,16 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Lock, Check } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Level } from '../types/index';
+import { sound } from '../lib/sound';
 
 interface Point {
-  x: number; // real pixels
-  y: number; // real pixels
+  x: number;
+  y: number;
   level: Level;
 }
 
 interface TrailProps {
-  levels: Level[]; // the full ordered sequence for this trail, in branch_order
+  levels: Level[];
   selectedLevelId: string | null;
   onSelect: (level: Level) => void;
 }
@@ -20,18 +21,8 @@ const TOP_PADDING = 70;
 const BOTTOM_PADDING = 90;
 const NODE_SIZE = 64;
 
-// A rotating set of generic study emoji. Nothing contextual yet — this is
-// deliberately a placeholder ("any emoji", per spec) until nodes carry a
-// real category/icon field.
 const EMOJI_SET = ['📘', '🎯', '🧠', '✏️', '🔍', '💡', '🗣️', '📐', '🧩', '⚡'];
 
-// Both the ribbon path and every node are computed from this SAME measured
-// pixel width — that's what guarantees nodes sit exactly on the path. The
-// decorative clutter (trees/rocks/flowers) below is drawn from this same
-// point set too, which is also why we draw the background in code instead
-// of using a photo: a fixed image can never guarantee its path lines up
-// with a dynamically-sized set of nodes, but a shared coordinate function
-// always does.
 function computePositions(levels: Level[], width: number): Point[] {
   const amplitude = Math.min(width * 0.26, 170);
   const centerX = width / 2;
@@ -111,9 +102,6 @@ export default function Trail({ levels, selectedLevelId, onSelect }: TrailProps)
   const pathD = useMemo(() => smoothPath(points), [points]);
   const totalHeight = TOP_PADDING + Math.max(0, levels.length - 1) * SPACING_Y + BOTTOM_PADDING;
 
-  // Progress is drawn as a real sub-path through the points already
-  // reached, ending exactly at a node — not an animated fraction of the
-  // total path length, which is what produced the "floating dashes" bug.
   const litCount = useMemo(() => {
     const activeIdx = levels.findIndex((l) => l.status === 'active');
     if (activeIdx >= 0) return activeIdx + 1;
@@ -123,10 +111,6 @@ export default function Trail({ levels, selectedLevelId, onSelect }: TrailProps)
 
   const litPathD = useMemo(() => smoothPath(points.slice(0, litCount)), [points, litCount]);
 
-  // Decorative clutter — pines, bushes, rocks, flowers scattered beside the
-  // path between consecutive nodes. Deterministic (seeded off the index),
-  // not random, so it doesn't reshuffle on every re-render, and clamped to
-  // stay within the container instead of running off the edge.
   const clutter = useMemo(() => {
     if (width === 0) return [];
     const items: { type: 'pine' | 'bush' | 'rock' | 'flower'; x: number; y: number; scale: number }[] = [];
@@ -190,7 +174,6 @@ export default function Trail({ levels, selectedLevelId, onSelect }: TrailProps)
               </g>
             ))}
 
-            {/* the dirt-trail ribbon — solid, no dash, matching the reference art */}
             <path d={pathD} fill="none" stroke="#dfc98a" strokeWidth={30} strokeLinecap="round" strokeLinejoin="round" />
             <path
               d={pathD}
@@ -204,8 +187,6 @@ export default function Trail({ levels, selectedLevelId, onSelect }: TrailProps)
               style={{ mixBlendMode: 'multiply' }}
             />
 
-            {/* lit progress — an actual sub-path through completed nodes,
-                not a length-fraction animation */}
             <motion.path
               key={litCount}
               d={litPathD}
@@ -230,7 +211,11 @@ export default function Trail({ levels, selectedLevelId, onSelect }: TrailProps)
               <div key={level.id} className="absolute" style={{ left: x, top: y, transform: 'translate(-50%, -50%)' }}>
                 <motion.button
                   type="button"
-                  onClick={() => onSelect(level)}
+                  data-sound="none"
+                  onClick={() => {
+                    sound.pop();
+                    onSelect(level);
+                  }}
                   aria-label={`${level.title} — ${level.status}`}
                   initial={{ opacity: 0, scale: 0.7 }}
                   animate={{ opacity: 1, scale: 1 }}

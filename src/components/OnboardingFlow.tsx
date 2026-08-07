@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Trophy, Music, Palette, Compass, Clock, Sparkles, Plus, Trash2, Shield } from 'lucide-react';
 import { Activity, ActivityType, User } from '../types/index';
 import { saveActivities } from '../lib/supabase/queries';
+import { sound } from '../lib/sound';
 
 interface OnboardingFlowProps {
   user: User;
@@ -46,6 +47,7 @@ export default function OnboardingFlow({ user, onOnboardingComplete }: Onboardin
         duration_minutes: currentDuration,
       },
     ]);
+    sound.pop();
     setCurrentName('');
     setCurrentDays(['Mon', 'Wed']);
   };
@@ -55,9 +57,6 @@ export default function OnboardingFlow({ user, onOnboardingComplete }: Onboardin
   };
 
   const markOnboardingSeen = () => {
-    // Local, lightweight "has this browser been through onboarding" flag —
-    // this is what lets App.tsx stop gating on activities.length > 0 now
-    // that protecting time is optional rather than required.
     try {
       window.localStorage.setItem(`quest_onboarding_seen_${user.id}`, '1');
     } catch {
@@ -73,9 +72,11 @@ export default function OnboardingFlow({ user, onOnboardingComplete }: Onboardin
         await saveActivities(addedActivities);
       }
       markOnboardingSeen();
+      sound.complete();
       onOnboardingComplete();
     } catch (err: any) {
       setError(err.message || 'Something went wrong saving your activities. Please try again.');
+      sound.denied();
     } finally {
       setIsSaving(false);
     }
@@ -303,6 +304,7 @@ export default function OnboardingFlow({ user, onOnboardingComplete }: Onboardin
               <div className="flex gap-3">
                 <button
                   type="button"
+                  data-sound="none"
                   disabled={isSaving}
                   onClick={handleSaveAndStart}
                   className={`flex-1 py-3 text-white rounded-xl shadow-active font-extrabold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${

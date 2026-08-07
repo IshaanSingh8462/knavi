@@ -11,6 +11,7 @@ import {
 } from '../lib/supabase/queries';
 import Trail from './Trail';
 import NodeDetail from './NodeDetail';
+import { sound } from '../lib/sound';
 
 interface PublicJourneysProps {
   isGuestMode?: boolean;
@@ -34,9 +35,6 @@ export default function PublicJourneys({ isGuestMode = false, onBack, onRequestS
   const [isForking, setIsForking] = useState(false);
   const [forkError, setForkError] = useState<string | null>(null);
 
-  // Guest sandbox — a purely local, in-memory copy of the fetched levels.
-  // Every "action" below mutates this array with setSandboxLevels and
-  // NEVER calls Supabase for a write. Nothing here survives a refresh.
   const [sandboxLevels, setSandboxLevels] = useState<Level[]>([]);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [timerInterval, setTimerInterval] = useState<ReturnType<typeof setInterval> | null>(null);
@@ -72,9 +70,6 @@ export default function PublicJourneys({ isGuestMode = false, onBack, onRequestS
       const levels = await getPublicLevelsForTask(task.id);
       setSelectedLevels(levels);
       if (isGuestMode) {
-        // Seed the sandbox from real content, but from this point on it's
-        // an independent copy — completing/breaking-down nodes here never
-        // touches the original owner's actual trail.
         setSandboxLevels(levels.map((l) => ({ ...l })));
       }
     } catch (err: any) {
@@ -199,9 +194,11 @@ export default function PublicJourneys({ isGuestMode = false, onBack, onRequestS
     setForkError(null);
     try {
       await forkPublicJourney(selectedTask, selectedLevels);
+      sound.complete();
       onForked?.();
     } catch (err: any) {
       setForkError(err.message || 'Could not fork this journey.');
+      sound.denied();
     } finally {
       setIsForking(false);
     }
@@ -237,6 +234,7 @@ export default function PublicJourneys({ isGuestMode = false, onBack, onRequestS
           {!isGuestMode && (
             <button
               type="button"
+              data-sound="none"
               onClick={handleFork}
               disabled={isForking}
               className="shrink-0 w-full sm:w-auto flex items-center justify-center gap-1.5 py-2.5 px-5 bg-quest-accent text-white font-sans font-bold rounded-xl shadow-active hover:opacity-90 transition-opacity cursor-pointer text-sm disabled:opacity-60"

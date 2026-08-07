@@ -13,6 +13,7 @@ import {
   Compass,
 } from 'lucide-react';
 import BrandHero from './BrandHero';
+import SoundToggle from './SoundToggle';
 
 interface LandingPageProps {
   onSignIn: () => void;
@@ -31,11 +32,11 @@ interface LandingPageProps {
 // ---------------------------------------------------------------------------
 
 const CAMPS = [
-  { percent: 2, emoji: ' ', label: 'Basecamp' },
-  { percent: 24, emoji: '', label: 'About' },
-  { percent: 46, emoji: '', label: 'How it works' },
-  { percent: 70, emoji: ' ', label: 'Perks' },
-  { percent: 94, emoji: ' ', label: 'Summit' },
+  { percent: 2, emoji: '🏕️', label: 'Basecamp' },
+  { percent: 24, emoji: '📖', label: 'About' },
+  { percent: 46, emoji: '🧭', label: 'How it works' },
+  { percent: 70, emoji: '✨', label: 'Perks' },
+  { percent: 94, emoji: '🏔️', label: 'Summit' },
 ];
 
 function CampDot({ progress, threshold }: { progress: MotionValue<number>; threshold: number }) {
@@ -64,7 +65,7 @@ function TrailSpine({ progress }: { progress: MotionValue<number> }) {
         <div key={c.label} className="absolute" style={{ top: `${c.percent}%`, left: 0 }}>
           <CampDot progress={progress} threshold={c.percent} />
           <span
-            className="absolute left-6 top-13 -translate-y-1/2 text-[20px] font-mono uppercase tracking-widest text-quest-muted whitespace-nowrap select-none"
+            className="absolute left-8 top-1/2 -translate-y-1/2 text-[10px] font-mono uppercase tracking-widest text-quest-muted whitespace-nowrap select-none"
           >
             {c.emoji} {c.label}
           </span>
@@ -176,6 +177,7 @@ export default function LandingPage({ onSignIn, onSignUp, onGuest, isGuestSubmit
     <div ref={containerRef} className="relative bg-void text-ink">
       <ScrollProgressBar progress={scrollYProgress} />
       <TrailSpine progress={scrollYProgress} />
+      <SoundToggle className="fixed top-4 right-4 z-40 bg-paper border border-quest-border rounded-full w-9 h-9 shadow-cozy" />
 
       <div className="lg:pl-24">
         {/* ---------------- HERO ---------------- */}

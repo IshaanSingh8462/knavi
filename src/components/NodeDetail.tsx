@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { Clock, FastForward, X, Sparkles, Layers, ExternalLink, Youtube, Search, RotateCcw } from 'lucide-react';
 import { Level } from '../types/index';
 import { MAX_NODE_DEPTH } from '../lib/constants';
+import { sound } from '../lib/sound';
 
 interface NodeDetailProps {
   level: Level | null;
@@ -62,13 +63,18 @@ export default function NodeDetail({
   const handleBreakDown = async () => {
     setIsBreakingDown(true);
     setStopMessage(null);
+    sound.breakdown();
     try {
       const result = await onBreakDownFurther(level);
       if (result.stopped && result.message) {
         setStopMessage(result.message);
+        sound.denied();
+      } else {
+        sound.unlock();
       }
     } catch (err: any) {
       setStopMessage(err.message || 'Could not break this step down right now.');
+      sound.denied();
     } finally {
       setIsBreakingDown(false);
     }
@@ -77,6 +83,7 @@ export default function NodeDetail({
   const handleRevert = async () => {
     setIsReverting(true);
     setRevertError(null);
+    sound.undo();
     try {
       await onRevertCompletion(level);
     } catch (err: any) {
@@ -184,6 +191,7 @@ export default function NodeDetail({
               ) : (
                 <button
                   type="button"
+                  data-sound="none"
                   onClick={handleBreakDown}
                   disabled={isBreakingDown || alreadyHasChildren}
                   className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-lg text-xs font-sans font-bold transition-colors ${
@@ -218,6 +226,7 @@ export default function NodeDetail({
               <div className="mt-5">
                 <button
                   type="button"
+                  data-sound="none"
                   onClick={handleRevert}
                   disabled={isReverting}
                   className="w-full flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-lg text-xs font-sans font-bold border border-quest-border text-quest-muted hover:text-ink hover:bg-black/5 transition-colors cursor-pointer disabled:opacity-60"
@@ -235,14 +244,22 @@ export default function NodeDetail({
               <div className="flex items-center gap-2 mt-5">
                 <button
                   type="button"
-                  onClick={() => onComplete(level.id, false)}
+                  data-sound="none"
+                  onClick={() => {
+                    sound.complete();
+                    onComplete(level.id, false);
+                  }}
                   className="flex-1 py-3 font-sans font-bold text-sm bg-quest-accent text-white rounded-xl shadow-active hover:opacity-90 transition-opacity cursor-pointer"
                 >
                   Mark Complete
                 </button>
                 <button
                   type="button"
-                  onClick={() => onComplete(level.id, true)}
+                  data-sound="none"
+                  onClick={() => {
+                    sound.complete();
+                    onComplete(level.id, true);
+                  }}
                   title="Mark as already known"
                   className="px-4 py-3 font-sans font-bold text-sm border border-quest-border bg-black/5 hover:bg-black/10 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 text-ink"
                 >

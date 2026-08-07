@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Trash2, Plus, Sparkles, AlertCircle, BookOpen } from 'lucide-react';
 import { User } from '../types/index';
 import { authFetch } from '../lib/supabase/queries';
+import { sound } from '../lib/sound';
 
 interface TaskInput {
   title: string;
@@ -96,6 +97,7 @@ export default function WeeklySetup({ user, onPlanGenerated }: WeeklySetupProps)
 
     setIsLoading(true);
     setErrorMsg(null);
+    sound.generating();
     const intervalToken = runLoadingMessages();
 
     try {
@@ -117,10 +119,12 @@ export default function WeeklySetup({ user, onPlanGenerated }: WeeklySetupProps)
         throw new Error(errData.error || 'Failed to generate weekly plan.');
       }
 
+      sound.unlock();
       onPlanGenerated();
     } catch (err: any) {
       console.error(err);
       setErrorMsg(err.message || 'Something went wrong. Let\'s try building again!');
+      sound.denied();
     } finally {
       clearInterval(intervalToken);
       setIsLoading(false);
@@ -299,6 +303,7 @@ export default function WeeklySetup({ user, onPlanGenerated }: WeeklySetupProps)
       <div className="flex justify-end pt-4">
         <button
           type="button"
+          data-sound="none"
           onClick={handleBuildMyWeek}
           className="flex items-center gap-2 px-8 py-3.5 bg-quest-accent text-white font-sans font-bold rounded-xl shadow-active border border-quest-accent hover:opacity-90 hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer text-sm"
         >
