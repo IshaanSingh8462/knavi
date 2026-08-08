@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { Compass, ArrowLeft, UserRound, Sparkles, GitFork, Info } from 'lucide-react';
+import { Compass, ArrowLeft, UserRound, Sparkles, GitFork, Info, AlertTriangle } from 'lucide-react';
 import { Task, Level, PublicJourneyCard } from '../types/index';
 import {
   getPublicTasks,
@@ -8,6 +8,7 @@ import {
   getPublicLevelsForTask,
   forkPublicJourney,
   previewDecomposeFurther,
+  getMyTaskTitles,
 } from '../lib/supabase/queries';
 import Trail from './Trail';
 import NodeDetail from './NodeDetail';
@@ -34,6 +35,7 @@ export default function PublicJourneys({ isGuestMode = false, onBack, onRequestS
 
   const [isForking, setIsForking] = useState(false);
   const [forkError, setForkError] = useState<string | null>(null);
+  const [duplicateTitleWarning, setDuplicateTitleWarning] = useState<string | null>(null);
 
   const [sandboxLevels, setSandboxLevels] = useState<Level[]>([]);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
@@ -66,6 +68,7 @@ export default function PublicJourneys({ isGuestMode = false, onBack, onRequestS
     setIsLoadingDetail(true);
     setError(null);
     setForkError(null);
+    setDuplicateTitleWarning(null);
     try {
       const levels = await getPublicLevelsForTask(task.id);
       setSelectedLevels(levels);
@@ -92,6 +95,7 @@ export default function PublicJourneys({ isGuestMode = false, onBack, onRequestS
     setSelectedLevels([]);
     setSandboxLevels([]);
     setPreviewLevel(null);
+    setDuplicateTitleWarning(null);
   };
 
   const formatTimer = (totSeconds: number) => {
@@ -190,11 +194,33 @@ export default function PublicJourneys({ isGuestMode = false, onBack, onRequestS
 
   const handleFork = async () => {
     if (!selectedTask) return;
-    setIsForking(true);
     setForkError(null);
+
+    // First press checks for an existing trail with the same title and, if
+    // found, arms a warning instead of forking immediately — mirroring the
+    // delete-trail confirm pattern rather than blocking outright. If the
+    // check itself fails for some reason, don't let that block forking.
+    if (!duplicateTitleWarning) {
+      try {
+        const titles = await getMyTaskTitles();
+        const isDuplicate = titles.some(
+          (t) => t.trim().toLowerCase() === selectedTask.title.trim().toLowerCase()
+        );
+        if (isDuplicate) {
+          setDuplicateTitleWarning(selectedTask.title);
+          return;
+        }
+      } catch {
+        // Ignore — proceed with the fork rather than blocking on a check
+        // that itself couldn't run.
+      }
+    }
+
+    setIsForking(true);
     try {
       await forkPublicJourney(selectedTask, selectedLevels);
       sound.complete();
+      setDuplicateTitleWarning(null);
       onForked?.();
     } catch (err: any) {
       setForkError(err.message || 'Could not fork this journey.');
@@ -237,12 +263,25 @@ export default function PublicJourneys({ isGuestMode = false, onBack, onRequestS
               data-sound="none"
               onClick={handleFork}
               disabled={isForking}
-              className="shrink-0 w-full sm:w-auto flex items-center justify-center gap-1.5 py-2.5 px-5 bg-quest-accent text-white font-sans font-bold rounded-xl shadow-active hover:opacity-90 transition-opacity cursor-pointer text-sm disabled:opacity-60"
+              className={`shrink-0 w-full sm:w-auto flex items-center justify-center gap-1.5 py-2.5 px-5 font-sans font-bold rounded-xl shadow-active transition-opacity cursor-pointer text-sm disabled:opacity-60 ${
+                duplicateTitleWarning ? 'bg-amber-600 text-white hover:opacity-90' : 'bg-quest-accent text-white hover:opacity-90'
+              }`}
             >
-              <GitFork className="w-4 h-4" /> {isForking ? 'Forking...' : 'Fork this Journey'}
+              <GitFork className="w-4 h-4" />
+              {isForking ? 'Forking...' : duplicateTitleWarning ? 'Fork Anyway' : 'Fork this Journey'}
             </button>
           )}
         </div>
+
+        {duplicateTitleWarning && (
+          <div className="mb-4 flex items-start gap-2 bg-amber-500/10 border border-amber-500/25 rounded-xl p-3 text-xs text-amber-800">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>
+              You already have a trail called "{duplicateTitleWarning}". Forking again will create a separate trail
+              for the same topic.
+            </span>
+          </div>
+        )}
 
         {forkError && <div className="mb-4 bg-rose-500/10 border border-rose-500/20 text-rose-700 p-3 rounded-lg text-xs">{forkError}</div>}
 

@@ -202,6 +202,21 @@ export async function forkPublicJourney(sourceTask: Task, sourceLevels: Level[])
   return newTask as Task;
 }
 
+// Lightweight duplicate-trail check — just titles, not full task rows.
+// Used before creating a new trail (Forge New Task, forking a public
+// journey) so the UI can warn rather than silently letting the same topic
+// pile up into several trails.
+export async function getMyTaskTitles(): Promise<string[]> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not signed in.');
+
+  const { data, error } = await supabase.from('tasks').select('title').eq('user_id', user.id);
+  if (error) throw error;
+  return (data || []).map((row: any) => row.title as string);
+}
+
 // Deletes a task and, via the `on delete cascade` on levels.task_id in
 // schema.sql, all of its levels along with it. Scoped by user_id explicitly
 // rather than relying on RLS alone — same reasoning as getLevels() above.

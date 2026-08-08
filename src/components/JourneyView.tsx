@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, Shield, X, ChevronLeft, ChevronRight, Flame, Globe2, Trash2 } from 'lucide-react';
+import { Sparkles, Shield, X, ChevronLeft, ChevronRight, Flame, Globe2, Trash2, AlertTriangle } from 'lucide-react';
 import { Level, Streak, User } from '../types/index';
 import Mascot from './Mascot';
 import Trail from './Trail';
@@ -54,6 +54,7 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
   const [forgeMode, setForgeMode] = useState<'academic' | 'custom'>('academic');
   const [isTaskConfirmed, setIsTaskConfirmed] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [acknowledgeDuplicate, setAcknowledgeDuplicate] = useState(false);
   const [newTaskSubject, setNewTaskSubject] = useState('Math');
   const [newTaskBranch, setNewTaskBranch] = useState<'academic' | 'custom'>('academic');
   const [isDecomposing, setIsDecomposing] = useState(false);
@@ -122,6 +123,19 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
       }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [levels, tasks]);
+
+  // Trimmed/case-insensitive match against every existing trail's title —
+  // this is what actually catches "Study for AP Calc" vs "study for ap
+  // calc " as the same topic, not just an exact string match. `tasks` here
+  // is always the full current set for the user (WeeklySetup wipes and
+  // replaces it wholesale on regeneration), so this reflects exactly what's
+  // visible in the trail switcher above.
+  const duplicateTaskTitle = useMemo(() => {
+    const t = newTaskTitle.trim().toLowerCase();
+    if (!t) return null;
+    const match = tasks.find((task) => task.title.trim().toLowerCase() === t);
+    return match ? match.title : null;
+  }, [newTaskTitle, tasks]);
 
   const activeGroup = trailGroups[Math.min(activeIndex, trailGroups.length - 1)] || trailGroups[0];
 
@@ -427,6 +441,7 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
             onClick={() => {
               setShowAddForm(true);
               setIsTaskConfirmed(false);
+              setAcknowledgeDuplicate(false);
             }}
             className={`w-full flex items-center justify-center gap-2 py-3 px-5 rounded-xl border font-sans font-bold text-sm cursor-pointer transition-all ${
               allComplete
@@ -454,6 +469,7 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
                   setShowAddForm(false);
                   setNewTaskTitle('');
                   setIsTaskConfirmed(false);
+                  setAcknowledgeDuplicate(false);
                   setErrorMessage(null);
                 }}
                 className="text-quest-muted hover:text-ink cursor-pointer"
@@ -525,7 +541,10 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
                       type="text"
                       disabled={isDecomposing}
                       value={newTaskTitle}
-                      onChange={(e) => setNewTaskTitle(e.target.value)}
+                      onChange={(e) => {
+                        setNewTaskTitle(e.target.value);
+                        setAcknowledgeDuplicate(false);
+                      }}
                       placeholder={forgeMode === 'academic' ? 'e.g. Study for physics quiz' : 'e.g. Learn to speak Spanish'}
                       className="p-2.5 border border-quest-border bg-[#f7fbf8] text-xs text-ink rounded-lg focus:outline-none focus:border-quest-accent"
                     />
@@ -601,10 +620,31 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
                   💡 Knavi breaks this into milestones and sequences them onto a new trail.
                 </div>
 
+                {duplicateTaskTitle && (
+                  <div className="bg-amber-500/10 border border-amber-500/25 p-3 rounded-lg text-amber-800 text-xs">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                      <p>
+                        You already have a trail called "{duplicateTaskTitle}". Continuing will create a separate
+                        trail for the same topic.
+                      </p>
+                    </div>
+                    <label className="flex items-center gap-1.5 mt-2.5 pl-5.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={acknowledgeDuplicate}
+                        onChange={(e) => setAcknowledgeDuplicate(e.target.checked)}
+                        className="cursor-pointer"
+                      />
+                      <span className="font-bold">Create it anyway</span>
+                    </label>
+                  </div>
+                )}
+
                 <button
                   type="button"
                   data-sound="none"
-                  disabled={isDecomposing}
+                  disabled={isDecomposing || (!!duplicateTaskTitle && !acknowledgeDuplicate)}
                   onClick={async () => {
                     setIsDecomposing(true);
                     setErrorMessage(null);
@@ -625,6 +665,7 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
                       }
                       setNewTaskTitle('');
                       setIsTaskConfirmed(false);
+                      setAcknowledgeDuplicate(false);
                       setShowAddForm(false);
                       sound.unlock();
                       onRefresh();
@@ -636,7 +677,9 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
                     }
                   }}
                   className={`w-full md:w-auto py-2.5 px-5 rounded-lg text-xs font-sans font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                    isDecomposing ? 'bg-quest-accent/70 text-white cursor-not-allowed' : 'bg-quest-accent text-white hover:opacity-90 shadow-active'
+                    isDecomposing || (duplicateTaskTitle && !acknowledgeDuplicate)
+                      ? 'bg-quest-accent/40 text-white cursor-not-allowed'
+                      : 'bg-quest-accent text-white hover:opacity-90 shadow-active'
                   }`}
                 >
                   {isDecomposing ? (
