@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Flame, LogOut, Compass, AlertCircle, Smile, Globe2, Leaf, Mail, Lock, UserRound, ArrowLeft } from 'lucide-react';
+import { Flame, LogOut, Compass, AlertCircle, Smile, Globe2, Leaf, Mail, Lock, UserRound, ArrowLeft, KeyRound } from 'lucide-react';
 import OnboardingFlow from './components/OnboardingFlow';
 import WeeklySetup from './components/WeeklySetup';
 import JourneyView from './components/JourneyView';
@@ -9,6 +9,7 @@ import PublicJourneys from './components/PublicJourneys';
 import BrandHero from './components/BrandHero';
 import LandingPage from './components/LandingPage';
 import SoundToggle from './components/SoundToggle';
+import ChangePasswordModal from './components/ChangePasswordModal';
 
 import { User, Level, Streak, Activity, Task } from './types/index';
 import { supabase, isSupabaseConfigured } from './lib/supabase/client';
@@ -84,6 +85,8 @@ export default function App() {
   const [authInfo, setAuthInfo] = useState<string | null>(null);
   const [isAuthSubmitting, setIsAuthSubmitting] = useState(false);
   const [isGuestSubmitting, setIsGuestSubmitting] = useState(false);
+
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
   const [onboardingFinished, setOnboardingFinished] = useState(false);
   const [hasCheckedOnboarding, setHasCheckedOnboarding] = useState(false);
@@ -574,6 +577,13 @@ export default function App() {
             </div>
             <SoundToggle />
             <button
+              onClick={() => setShowChangePassword(true)}
+              className="flex items-center justify-center text-quest-muted hover:text-ink transition-colors cursor-pointer"
+              title="Change password"
+            >
+              <KeyRound className="w-4 h-4" />
+            </button>
+            <button
               onClick={handleLogout}
               className="flex items-center gap-1.5 text-xs text-quest-muted hover:text-quest-accent font-bold cursor-pointer transition-colors"
               title="Sign out"
@@ -583,6 +593,10 @@ export default function App() {
           </div>
         </div>
       </header>
+
+      {showChangePassword && user?.email && (
+        <ChangePasswordModal email={user.email} onClose={() => setShowChangePassword(false)} />
+      )}
 
       <div className="block sm:hidden fixed bottom-0 left-0 right-0 border-t border-quest-border bg-paper backdrop-blur-md py-3 px-4 z-40">
         <div className="flex items-center justify-around">

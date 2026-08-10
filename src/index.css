@@ -6,54 +6,53 @@
   --font-serif: "Sora", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  /* Knavi palette — modern, nature-inspired, flat-vector. Mint background,
-     charcoal text, primary/forest green for active/complete states, trail
-     tan for warm highlights, soft sky blue for occasional accents. */
-  --color-ink: #2d3748;                  /* charcoal text */
-  --color-void: #f2faf3;                 /* mint page background */
-  --color-paper: #ffffff;                /* card surface */
-  --color-quest-accent: #3fa35c;         /* primary green — active + CTA */
-  --color-quest-accent-soft: #63b57f;
-  --color-quest-gold: #dfc98a;           /* trail tan */
-  --color-quest-moss: #245b35;           /* forest green — completed */
-  --color-quest-rose: #d9534f;           /* alerts */
-  --color-quest-muted: #64748b;          /* secondary text */
-  --color-quest-border: rgba(45, 55, 72, 0.12);
-  --color-knavi-sky: #a9d8f5;            /* subtle sky-blue accent */
+  /* Strail palette — matches the reference template exactly */
+  --color-void: #F2FAF3;
+  --color-surface: #FFFFFF;
+  --color-primary: #3FA35C;
+  --color-primary-dk: #2E8548;
+  --color-trail: #DFC98A;
+  --color-trail-dk: #C4A85F;
+  --color-wood: #B98552;
+  --color-wood-dk: #8B5E34;
+  --color-ink: #26312B;
+  --color-ink-soft: #5C6B62;
+  --color-line: #DEE8E0;
+  --color-moss: #245b35;      /* kept for existing completed-state usages elsewhere in the app */
+  --color-rose: #d9534f;      /* kept for existing alert usages elsewhere in the app */
+  --color-strail-sky: #a9d8f5;
+}
+
+@utility bg-wood-gradient {
+  background: radial-gradient(circle at 32% 28%, #D4A06B, var(--color-wood) 55%, var(--color-wood-dk) 100%);
 }
 
 @utility shadow-cozy {
-  box-shadow: 0 8px 24px 0 rgba(45, 55, 72, 0.08);
+  box-shadow: 0 14px 30px -20px rgba(38, 49, 43, 0.25);
 }
 
 @utility shadow-cozy-hover {
-  box-shadow: 0 8px 24px 0 rgba(63, 163, 92, 0.16);
+  box-shadow: 0 16px 34px -18px rgba(63, 163, 92, 0.28);
 }
 
 @utility shadow-active {
-  box-shadow: 0 0 20px 0 rgba(63, 163, 92, 0.35);
-}
-
-@utility shadow-gold {
-  box-shadow: 0 0 20px 0 rgba(223, 201, 138, 0.45);
+  box-shadow: 0 0 0 5px rgba(63, 163, 92, 0.16), 0 8px 16px -6px rgba(139, 94, 52, 0.45);
 }
 
 body {
   background-color: var(--color-void);
-  color: #2d3748;
+  color: var(--color-ink);
   font-family: var(--font-sans);
   min-height: 100vh;
   margin: 0;
   overflow-x: hidden;
 }
 
-.bg-paper {
-  border: 1px solid var(--color-quest-border);
+.bg-paper,
+.bg-surface {
+  border: 1px solid var(--color-line);
 }
 
-/* Horizontal snap strip for the trail-to-trail switcher. Native
-   scroll-snap gives free, buttery mobile swipe support without any
-   custom animation code. */
 .mountain-strip {
   display: flex;
   overflow-x: auto;
@@ -62,42 +61,19 @@ body {
   -webkit-overflow-scrolling: touch;
   touch-action: pan-x;
 }
-.mountain-strip::-webkit-scrollbar {
-  display: none;
-}
+.mountain-strip::-webkit-scrollbar { display: none; }
 
-.no-scrollbar {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.mountain-slide {
-  flex: 0 0 100%;
-  scroll-snap-align: start;
-}
-/* The vertical scroller inside a slide — pan-y so mobile browsers commit
-   to vertical scrolling here instead of fighting the horizontal strip. */
-.trail-scroll {
-  touch-action: pan-y;
-  -webkit-overflow-scrolling: touch;
-}
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.mountain-slide { flex: 0 0 100%; scroll-snap-align: start; }
+.trail-scroll { touch-action: pan-y; -webkit-overflow-scrolling: touch; }
 
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(45, 55, 72, 0.15);
-  border-radius: 999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(45, 55, 72, 0.25);
-}
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(38, 49, 43, 0.15); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(38, 49, 43, 0.25); }
+
+html { scroll-behavior: smooth; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

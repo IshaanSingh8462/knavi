@@ -22,6 +22,14 @@ export async function signOut() {
   if (error) throw error;
 }
 
+// Called from the Change Password flow, after the current password has
+// already been re-verified via signIn(). Updates the already-live session
+// to the new password.
+export async function updatePassword(newPassword: string): Promise<void> {
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw error;
+}
+
 export async function getActivities(): Promise<Activity[]> {
   const { data, error } = await supabase
     .from('activities')

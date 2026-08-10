@@ -1,392 +1,401 @@
-import { useRef, type ReactNode } from 'react';
-import { motion, useScroll, useTransform, MotionValue } from 'motion/react';
-import {
-  Leaf,
-  ChevronDown,
-  ArrowRight,
-  Flame,
-  Shield,
-  Layers,
-  Globe2,
-  Users,
-  GitFork,
-  Compass,
-} from 'lucide-react';
-import BrandHero from './BrandHero';
-import SoundToggle from './SoundToggle';
+import { useEffect, useRef, useState } from 'react';
+import { motion, useScroll, useTransform } from 'motion/react';
+import { ArrowRight, Lock, Check, Compass, PenLine, CheckCircle2, Users, Instagram } from 'lucide-react';
+import Logo from './Logo';
+import Trail from './Trail';
+import NodeLegend from './NodeLegend';
+import { Level } from '../types/index';
 
 interface LandingPageProps {
-  onSignIn: () => void;
-  onSignUp: () => void;
-  onGuest: () => void;
-  isGuestSubmitting?: boolean;
+  onGetStarted: () => void; // opens signup mode on the auth card
+  onSignIn: () => void;     // opens login mode on the auth card
+  onGuest: () => void;      // triggers guest entry
 }
 
-// ---------------------------------------------------------------------------
-// Signature element: a scroll-lit trail spine running down the left edge of
-// the page (desktop) plus a thin top progress bar (all breakpoints). Both
-// are driven by the SAME scrollYProgress motion value as the page's own
-// Trail.tsx nodes use branch_order/status — this is the marketing page
-// literally climbing itself as you read it, rather than a generic
-// scroll-progress-bar template.
-// ---------------------------------------------------------------------------
-
-const CAMPS = [
-  { percent: 2, emoji: '🏕️', label: 'Basecamp' },
-  { percent: 24, emoji: '📖', label: 'About' },
-  { percent: 46, emoji: '🧭', label: 'How it works' },
-  { percent: 70, emoji: '✨', label: 'Perks' },
-  { percent: 94, emoji: '🏔️', label: 'Summit' },
+const SECTIONS = [
+  { id: 'hero', label: 'Basecamp' },
+  { id: 'how', label: 'How It Works' },
+  { id: 'features', label: 'Features' },
+  { id: 'about', label: 'About Us' },
 ];
 
-function CampDot({ progress, threshold }: { progress: MotionValue<number>; threshold: number }) {
-  const t = threshold / 100;
-  const bg = useTransform(progress, [Math.max(0, t - 0.03), t], ['#dfc98a', '#3fa35c']);
-  const borderColor = useTransform(progress, [Math.max(0, t - 0.03), t], ['#c2a866', '#f0c060']);
-  const scale = useTransform(progress, [Math.max(0, t - 0.03), t, Math.min(1, t + 0.03)], [1, 1.15, 1]);
-  return (
-    <motion.div
-      className="absolute w-9 h-9 rounded-full border-4 flex items-center justify-center text-sm shadow-cozy"
-      style={{ backgroundColor: bg, borderColor, scale, left: '1.5rem', transform: 'translate(-50%, -50%)' }}
-    />
-  );
-}
+// Demo levels for the hero's live Trail — this is the SAME Trail.tsx
+// component used in the real app, just fed fake data with showClutter off,
+// so the marketing page can never visually drift from the product.
+const DEMO_LEVELS: Level[] = [
+  { id: 'demo-1', task_id: null, user_id: '', title: 'Pick a Topic', description: '', estimated_minutes: 25, branch: 'custom', branch_order: 0, status: 'complete', skipped: false, completed_at: null, depth: 0, parent_level_id: null },
+  { id: 'demo-2', task_id: null, user_id: '', title: 'Gather Sources', description: '', estimated_minutes: 25, branch: 'custom', branch_order: 1, status: 'complete', skipped: false, completed_at: null, depth: 0, parent_level_id: null },
+  { id: 'demo-3', task_id: null, user_id: '', title: 'Build an Outline', description: '', estimated_minutes: 25, branch: 'custom', branch_order: 2, status: 'active', skipped: false, completed_at: null, depth: 0, parent_level_id: null },
+  { id: 'demo-4', task_id: null, user_id: '', title: 'Write Introduction', description: '', estimated_minutes: 25, branch: 'custom', branch_order: 3, status: 'locked', skipped: false, completed_at: null, depth: 0, parent_level_id: null },
+  { id: 'demo-5', task_id: null, user_id: '', title: 'Draft & Submit', description: '', estimated_minutes: 25, branch: 'custom', branch_order: 4, status: 'locked', skipped: false, completed_at: null, depth: 0, parent_level_id: null },
+];
 
-function TrailSpine({ progress }: { progress: MotionValue<number> }) {
-  const litHeight = useTransform(progress, [0, 1], ['0%', '100%']);
+function BackgroundScene() {
   return (
-    <div className="hidden lg:block absolute left-10 top-0 bottom-0 w-0 z-10" aria-hidden="true">
-      <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-quest-border rounded-full" />
-      <motion.div
-        className="absolute left-0 top-0 w-1.5 bg-quest-accent rounded-full origin-top"
-        style={{ height: litHeight }}
-      />
-      {CAMPS.map((c) => (
-        <div key={c.label} className="absolute" style={{ top: `${c.percent}%`, left: 0 }}>
-          <CampDot progress={progress} threshold={c.percent} />
-          <span
-            className="absolute left-8 top-1/2 -translate-y-1/2 text-[10px] font-mono uppercase tracking-widest text-quest-muted whitespace-nowrap select-none"
-          >
-            {c.emoji} {c.label}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function ScrollProgressBar({ progress }: { progress: MotionValue<number> }) {
-  const width = useTransform(progress, [0, 1], ['0%', '100%']);
-  return (
-    <div className="fixed top-0 left-0 right-0 h-1 bg-black/5 z-50">
-      <motion.div className="h-full bg-quest-accent" style={{ width }} />
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Small shared building blocks
-// ---------------------------------------------------------------------------
-
-function Reveal({ children, delay = 0, className = '' }: { children: ReactNode; delay?: number; className?: string }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-80px' }}
-      transition={{ duration: 0.5, delay, ease: 'easeOut' }}
-      className={className}
+    <svg
+      viewBox="0 0 1440 2400"
+      preserveAspectRatio="xMidYMin slice"
+      className="w-full h-full"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
     >
-      {children}
-    </motion.div>
+      <rect width="1440" height="2400" fill="#F2FAF3" />
+      <path d="M0 260 Q 220 190 460 250 T 940 240 T 1440 260 V 420 H 0 Z" fill="#E7F5E9" />
+      <path d="M0 360 Q 260 300 520 350 T 1000 340 T 1440 360 V 480 H 0 Z" fill="#DCEFDF" />
+      <g fill="#FFFFFF" opacity="0.85">
+        <ellipse cx="180" cy="140" rx="52" ry="22" />
+        <ellipse cx="220" cy="130" rx="38" ry="18" />
+        <ellipse cx="1220" cy="90" rx="58" ry="24" />
+        <ellipse cx="760" cy="60" rx="44" ry="18" />
+      </g>
+      <g opacity="0.5">
+        {[[120, 420], [1310, 450], [60, 1000], [1370, 1050], [180, 1650], [1290, 1700]].map(([x, y], i) => (
+          <g key={i} transform={`translate(${x} ${y})`}>
+            <rect x="-4" y="18" width="8" height="24" rx="3" fill="#8B5E34" />
+            <polygon points="0,-30 20,20 -20,20" fill="#3FA35C" />
+          </g>
+        ))}
+      </g>
+      <path
+        d="M -60 300 C 300 500, 200 700, 600 850 S 1200 1100, 900 1400 S 200 1700, 500 2000 S 1300 2250, 1100 2400"
+        fill="none"
+        stroke="#DFC98A"
+        strokeWidth="6"
+        strokeDasharray="2 22"
+        strokeLinecap="round"
+        opacity="0.7"
+      />
+    </svg>
   );
 }
 
-function Eyebrow({ children }: { children: ReactNode }) {
+// The side nav uses the app's own node-state visual language (locked /
+// active / done) to represent scroll progress through the page — sections
+// behind you read as "done," the current one pulses "active," sections
+// ahead are "locked." Same idea as Trail.tsx, just driven by scroll
+// position instead of node index.
+function SideTrailNav({ activeIndex, onJump }: { activeIndex: number; onJump: (id: string) => void }) {
   return (
-    <span className="text-[11px] font-mono font-bold uppercase tracking-[0.2em] text-quest-accent-soft">
-      {children}
-    </span>
-  );
-}
-
-// ---------------------------------------------------------------------------
-
-export default function LandingPage({ onSignIn, onSignUp, onGuest, isGuestSubmitting }: LandingPageProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: containerRef, offset: ['start start', 'end end'] });
-  const heroParallax = useTransform(scrollYProgress, [0, 0.18], ['0%', '-6%']);
-
-  const steps = [
-    {
-      n: '01',
-      title: 'Drop in a goal',
-      body: 'Homework, a recital, a side project — anything you keep putting off because it feels too big to start.',
-    },
-    {
-      n: '02',
-      title: 'Gemini plans the climb',
-      body: 'Knavi asks Gemini to split it into 3 to 6 specific steps, each sized to 20–30 focused minutes.',
-    },
-    {
-      n: '03',
-      title: 'Climb node by node',
-      body: 'Steps unlock one at a time as you finish them, so you always know exactly what comes next.',
-    },
-    {
-      n: '04',
-      title: 'Protect what matters',
-      body: 'Tell Knavi about practice, rehearsal, or standing plans — it schedules around them and keeps your streak alive.',
-    },
-  ];
-
-  const perks = [
-    {
-      icon: Flame,
-      title: 'Streaks & Basecamp',
-      body: 'A daily streak counter and a per-trail progress dashboard, so momentum is something you can actually see.',
-    },
-    {
-      icon: Shield,
-      title: 'Protected Time',
-      body: "Block out sports, music, or anything else that's non-negotiable. Knavi routes your steps around it, never through it.",
-    },
-    {
-      icon: Layers,
-      title: 'Break Down Further',
-      body: "Stuck on a step? Split it into smaller sub-steps on the spot — up to two layers deep before Knavi tells you to just try it.",
-    },
-    {
-      icon: Globe2,
-      title: 'Public Journeys',
-      body: 'Browse trails other students have already climbed for real goals, and fork one straight into your own account.',
-    },
-    {
-      icon: Users,
-      title: 'Guest Sandbox',
-      body: 'Try a full trail — breakdowns included — before creating an account. Nothing saves, nothing required.',
-    },
-    {
-      icon: GitFork,
-      title: 'One Trail Per Goal',
-      body: 'Every task gets its own independently publishable trail. No mixed buckets, no losing track of what belongs where.',
-    },
-  ];
-
-  return (
-    <div ref={containerRef} className="relative bg-void text-ink">
-      <ScrollProgressBar progress={scrollYProgress} />
-      <TrailSpine progress={scrollYProgress} />
-      <SoundToggle className="fixed top-4 right-4 z-40 bg-paper border border-quest-border rounded-full w-9 h-9 shadow-cozy" />
-
-      <div className="lg:pl-24">
-        {/* ---------------- HERO ---------------- */}
-        <section className="relative min-h-screen flex items-center overflow-hidden">
-          <div className="absolute top-[-120px] left-[-80px] w-[480px] h-[480px] bg-quest-accent/10 rounded-full blur-[120px] pointer-events-none" />
-          <div className="absolute bottom-[-140px] right-[-100px] w-[520px] h-[520px] bg-quest-moss/10 rounded-full blur-[130px] pointer-events-none" />
-
-          <div className="relative z-10 max-w-6xl w-full mx-auto px-6 sm:px-10 py-24 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-              <div className="flex items-center gap-2.5 mb-6">
-                <div className="inline-flex w-10 h-10 bg-quest-accent/15 items-center justify-center rounded-full text-quest-accent">
-                  <Leaf className="w-5.5 h-5.5" />
-                </div>
-                <span className="font-sans font-black text-2xl text-ink tracking-tight">Knavi</span>
-              </div>
-
-              <Eyebrow>For students who stare at blank to-do lists</Eyebrow>
-              <h1 className="font-serif font-black text-4xl sm:text-5xl lg:text-[3.4rem] text-ink leading-[1.05] mt-3">
-                Turn any goal into a trail you can actually finish.
-              </h1>
-              <p className="text-quest-muted text-base sm:text-lg mt-5 leading-relaxed max-w-lg">
-                Knavi breaks your homework, projects, and side quests into a mountain trail of 20–30 minute steps.
-                One node unlocks at a time, so you always know exactly what's next.
-              </p>
-
-              <div className="flex flex-wrap items-center gap-3 mt-8">
-                <button
-                  onClick={onSignUp}
-                  className="flex items-center gap-2 py-3.5 px-7 bg-quest-accent text-white font-sans font-bold rounded-xl shadow-active hover:opacity-90 hover:-translate-y-0.5 transition-all cursor-pointer text-sm"
-                >
-                  Create free account <ArrowRight className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={onSignIn}
-                  className="py-3.5 px-6 text-ink font-sans font-bold rounded-xl border border-quest-border hover:bg-black/5 transition-colors cursor-pointer text-sm"
-                >
-                  Sign in
-                </button>
-                <button
-                  onClick={onGuest}
-                  disabled={isGuestSubmitting}
-                  className="py-3.5 px-2 text-quest-muted hover:text-ink font-sans font-bold text-sm cursor-pointer transition-colors underline underline-offset-4 disabled:opacity-60"
-                >
-                  {isGuestSubmitting ? 'Entering...' : 'Browse as a guest'}
-                </button>
-              </div>
-            </motion.div>
-
-            <motion.div
-              className="relative h-[340px] sm:h-[420px] lg:h-[520px] rounded-[28px] overflow-hidden border border-quest-border shadow-cozy"
-              style={{ y: heroParallax }}
-              initial={{ opacity: 0, scale: 0.97 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
+    <div className="hidden lg:flex flex-col fixed left-6 top-1/2 -translate-y-1/2 z-40">
+      {SECTIONS.map((s, i) => {
+        const state: 'done' | 'active' | 'locked' = i < activeIndex ? 'done' : i === activeIndex ? 'active' : 'locked';
+        return (
+          <div key={s.id} className="flex flex-col items-center">
+            <button
+              type="button"
+              onClick={() => onJump(s.id)}
+              aria-label={s.label}
+              className="group relative flex items-center cursor-pointer"
             >
-              <BrandHero />
-            </motion.div>
+              <div
+                className={`relative rounded-full flex items-center justify-center shrink-0 transition-transform ${
+                  state === 'locked' ? 'w-10 h-10 border-[3px] border-dashed bg-surface' : 'w-12 h-12 border-[5px] bg-wood-gradient'
+                } ${state === 'active' ? 'scale-110 shadow-active' : ''} ${state === 'done' ? 'opacity-80' : ''}`}
+                style={{
+                  borderColor: state === 'locked' ? 'var(--color-line)' : state === 'active' ? '#f0c060' : 'var(--color-trail)',
+                }}
+              >
+                {state === 'active' && (
+                  <motion.span
+                    className="absolute -inset-1.5 rounded-full border-2"
+                    style={{ borderColor: '#f0c060' }}
+                    animate={{ scale: [1, 1.3], opacity: [0.6, 0] }}
+                    transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
+                  />
+                )}
+                {state === 'locked' ? (
+                  <Lock className="w-4 h-4 text-ink-soft" />
+                ) : state === 'done' ? (
+                  <Check className="w-5 h-5 text-white" />
+                ) : (
+                  <span className="w-2.5 h-2.5 rounded-full bg-white" />
+                )}
+              </div>
+              <span
+                className={`ml-3 text-[11px] font-mono uppercase tracking-widest whitespace-nowrap transition-opacity ${
+                  state === 'active' ? 'opacity-100 text-ink font-bold' : 'opacity-0 group-hover:opacity-100 text-ink-soft'
+                }`}
+              >
+                {s.label}
+              </span>
+            </button>
+            {i < SECTIONS.length - 1 && <div className="w-[3px] h-10" style={{ backgroundColor: 'var(--color-trail)' }} />}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export default function LandingPage({ onGetStarted, onSignIn, onGuest }: LandingPageProps) {
+  const pageRef = useRef<HTMLDivElement>(null);
+  const sectionElsRef = useRef<Record<string, HTMLElement | null>>({});
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [bgHeight, setBgHeight] = useState(0);
+
+  useEffect(() => {
+    const el = pageRef.current;
+    if (!el) return;
+    const update = () => setBgHeight(el.scrollHeight);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    window.addEventListener('resize', update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', update);
+    };
+  }, []);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const idx = SECTIONS.findIndex((s) => s.id === entry.target.id);
+          if (idx !== -1) setActiveIndex(idx);
+        });
+      },
+      { rootMargin: '-35% 0px -55% 0px', threshold: 0 }
+    );
+
+    // Safely filter and observe elements while keeping TypeScript satisfied
+    Object.values(sectionElsRef.current).forEach((el) => {
+      if (el instanceof Element) {
+        observer.observe(el);
+      }
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  const jumpTo = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const { scrollY } = useScroll();
+  const bgY = useTransform(scrollY, (v) => v * 0.32);
+
+  return (
+    <div ref={pageRef} className="relative bg-void text-ink overflow-x-hidden">
+      <motion.div
+        aria-hidden="true"
+        className="absolute top-0 left-0 w-full pointer-events-none z-0"
+        style={{ height: bgHeight || '100%', y: bgY }}
+      >
+        <BackgroundScene />
+      </motion.div>
+
+      <div className="relative z-10">
+        {/* NAVBAR */}
+        <header className="sticky top-0 z-50 flex items-center justify-between gap-4 px-6 sm:px-10 py-4 bg-void/80 backdrop-blur-md border-b border-line">
+          <button
+            type="button"
+            onClick={() => jumpTo('hero')}
+            className="flex items-center gap-2.5 cursor-pointer"
+          >
+            <Logo className="w-7 h-8 text-primary" />
+            <span className="font-sans font-extrabold text-xl text-ink tracking-tight">Strail</span>
+          </button>
+
+          <nav className="hidden md:flex items-center gap-8">
+            {SECTIONS.slice(1).map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => jumpTo(s.id)}
+                className="text-sm font-bold text-ink-soft hover:text-primary-dk transition-colors cursor-pointer"
+              >
+                {s.label}
+              </button>
+            ))}
+          </nav>
+
+          <button
+            type="button"
+            onClick={onGetStarted}
+            className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary text-white font-bold text-sm shadow-active hover:opacity-90 hover:-translate-y-0.5 transition-all cursor-pointer"
+          >
+            Get Started <ArrowRight className="w-4 h-4" />
+          </button>
+        </header>
+
+        <SideTrailNav activeIndex={activeIndex} onJump={jumpTo} />
+
+        {/* HERO */}
+        <section
+          id="hero"
+          ref={(el) => { sectionElsRef.current.hero = el; }}
+          className="max-w-6xl mx-auto px-6 sm:px-10 pt-16 sm:pt-20 pb-6 text-center"
+        >
+          <span className="inline-flex items-center gap-2 bg-surface border border-line text-primary-dk font-mono font-semibold text-xs tracking-wide px-3.5 py-1.5 rounded-full mb-6">
+            🥾 TRAIL-01 · Built for students
+          </span>
+          <h1 className="font-sans font-extrabold text-[clamp(32px,4.6vw,56px)] leading-[1.08] tracking-tight text-ink max-w-3xl mx-auto">
+            Stop Overwhelm.
+            <br />
+            Turn Big Goals Into <span className="text-primary-dk">Small Steps.</span>
+          </h1>
+          <p className="mt-5 text-ink-soft text-base sm:text-lg leading-relaxed max-w-md mx-auto">
+            Strail is the gamified path tracker that breaks your academics, hobbies, and projects into a trail you
+            can actually walk — one step at a time.
+          </p>
+          <div className="flex flex-wrap gap-3 justify-center items-center mt-7">
+            <button
+              type="button"
+              onClick={onGetStarted}
+              className="flex items-center gap-2 px-6 py-3 rounded-full bg-primary text-white font-bold text-sm shadow-active hover:opacity-90 hover:-translate-y-0.5 transition-all cursor-pointer"
+            >
+              Create free account <ArrowRight className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={onSignIn}
+              className="px-6 py-3 rounded-full bg-surface text-ink font-bold text-sm border-2 border-line hover:border-trail-dk transition-colors cursor-pointer"
+            >
+              Sign in
+            </button>
+            <button
+              type="button"
+              onClick={onGuest}
+              className="px-4 py-3 text-ink-soft font-bold text-sm underline hover:text-primary-dk transition-colors cursor-pointer"
+            >
+              Browse as a guest
+            </button>
           </div>
 
-          <motion.div
-            className="hidden sm:flex absolute bottom-8 left-1/2 -translate-x-1/2 flex-col items-center gap-1 text-quest-muted"
-            animate={{ y: [0, 6, 0] }}
-            transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            <span className="text-[11px] font-mono uppercase tracking-widest">See how it works</span>
-            <ChevronDown className="w-4 h-4" />
-          </motion.div>
+          {/* SIGNATURE: real Trail.tsx, fed demo data, clutter off for a clean preview */}
+          <div className="mt-14 max-w-4xl mx-auto text-left">
+            <Trail
+              levels={DEMO_LEVELS}
+              selectedLevelId={null}
+              onSelect={() => {}}
+              title="🗺️ RESEARCH PAPER TRAIL"
+              showClutter={false}
+            />
+          </div>
         </section>
 
-        {/* ---------------- ABOUT ---------------- */}
-        <section className="max-w-4xl mx-auto px-6 sm:px-10 py-24">
-          <Reveal>
-            <Eyebrow>Why we built this</Eyebrow>
-            <h2 className="font-serif font-black text-3xl sm:text-4xl text-ink mt-3 leading-tight">
-              Task lists don't move. Trails do.
+        {/* HOW IT WORKS */}
+        <section
+          id="how"
+          ref={(el) => { sectionElsRef.current.how = el; }}
+          className="max-w-6xl mx-auto px-6 sm:px-10 py-20"
+        >
+          <div className="text-center max-w-xl mx-auto mb-12">
+            <span className="text-primary-dk font-mono font-semibold text-xs tracking-wide uppercase block mb-2">
+              How It Works
+            </span>
+            <h2 className="font-sans font-extrabold text-[clamp(26px,3vw,36px)] tracking-tight">
+              From overwhelmed to moving, in four steps.
             </h2>
-          </Reveal>
-          <Reveal delay={0.1}>
-            <p className="text-quest-muted text-base sm:text-lg leading-relaxed mt-6 max-w-2xl">
-              Most to-do apps hand you a wall of text and call it done. Knavi asks Google Gemini to actually plan
-              the climb — it turns "study for the AP Calc exam" into steps small enough to start today, and
-              specific enough to matter. No vague "work on it" nodes, and no bottomless to-do list staring back at
-              you.
+            <p className="mt-3 text-ink-soft text-[15.5px] leading-relaxed">
+              Strail turns any goal — big or small — into a clear, walkable trail.
             </p>
-          </Reveal>
-          <Reveal delay={0.2}>
-            <div className="grid grid-cols-3 gap-4 mt-10 max-w-lg">
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {[
+              { num: '01', title: 'Pick a Goal', body: 'Tell Strail what you want to accomplish, from an essay to a new hobby.', comingSoon: false },
+              { num: '02', title: 'Get Your Trail', body: 'Strail turns your goal into a sequence of manageable waypoints.', comingSoon: false },
+              { num: '03', title: 'Zoom In', body: 'Stuck on a step? Break it down again into smaller actions.', comingSoon: false },
+              { num: '04', title: 'Group Trails', body: 'Walk a trail alongside classmates. Coming soon.', comingSoon: true },
+            ].map((step) => (
+              <div
+                key={step.num}
+                className={`bg-surface rounded-[22px] p-6 text-left shadow-cozy ${
+                  step.comingSoon ? 'border-2 border-dashed border-trail-dk' : 'border border-line'
+                }`}
+              >
+                <div className="w-[34px] h-[34px] rounded-[10px] bg-trail text-[#5A4B22] font-mono font-bold text-sm flex items-center justify-center mb-4">
+                  {step.num}
+                </div>
+                <h3 className="font-bold text-[16.5px] mb-2">{step.title}</h3>
+                <p className="text-[13.5px] text-ink-soft leading-relaxed">{step.body}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* FEATURES — reuses the real NodeLegend component */}
+        <section
+          id="features"
+          ref={(el) => { sectionElsRef.current.features = el; }}
+          className="max-w-6xl mx-auto px-6 sm:px-10 py-20"
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-14 items-center">
+            <div className="bg-surface border border-line rounded-[26px] p-8 sm:p-10 shadow-cozy">
+              <NodeLegend />
+            </div>
+
+            <div className="flex flex-col gap-6">
+              <span className="text-primary-dk font-mono font-semibold text-xs tracking-wide uppercase">
+                Features
+              </span>
+              <h2 className="font-sans font-extrabold text-2xl sm:text-[26px] -mt-4 leading-snug">
+                Every waypoint tells you what it's about — at a glance.
+              </h2>
+
               {[
-                { value: '3–6', label: 'steps per trail' },
-                { value: '20–30', label: 'minutes per step' },
-                { value: '1', label: 'trail per goal' },
-              ].map((s) => (
-                <div key={s.label} className="bg-paper border border-quest-border rounded-xl p-4 text-center shadow-cozy">
-                  <div className="font-serif font-black text-2xl text-quest-accent">{s.value}</div>
-                  <div className="text-[11px] text-quest-muted mt-1 leading-snug">{s.label}</div>
+                { icon: Compass, title: 'Smart hint icons', body: "Each step shows a small emoji hinting at its content — a protractor for trigonometry practice, a guitar for a music step." },
+                { icon: PenLine, title: 'One clear focus', body: 'Only one waypoint is ever "Active," with a soft pulsing ring, so you always know exactly what\'s next.' },
+                { icon: CheckCircle2, title: 'Visible momentum', body: 'Completed waypoints get a checkmark badge and settle back slightly, so progress is always visible along the trail.' },
+              ].map((f) => (
+                <div key={f.title} className="flex gap-4">
+                  <div className="w-[42px] h-[42px] rounded-xl bg-trail flex items-center justify-center shrink-0">
+                    <f.icon className="w-5 h-5 text-[#5A4B22]" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-[15.5px] mb-1">{f.title}</h4>
+                    <p className="text-[13.5px] text-ink-soft leading-relaxed">{f.body}</p>
+                  </div>
                 </div>
               ))}
             </div>
-          </Reveal>
-        </section>
-
-        {/* ---------------- HOW IT WORKS ---------------- */}
-        <section className="max-w-5xl mx-auto px-6 sm:px-10 py-24">
-          <Reveal>
-            <Eyebrow>How it works</Eyebrow>
-            <h2 className="font-serif font-black text-3xl sm:text-4xl text-ink mt-3">Four steps up the mountain.</h2>
-          </Reveal>
-
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
-            {steps.map((s, i) => (
-              <Reveal key={s.n} delay={i * 0.08}>
-                <div className="flex gap-4 p-5 rounded-2xl bg-paper border border-quest-border shadow-cozy h-full">
-                  <span className="font-mono font-black text-2xl text-quest-gold shrink-0 leading-none">{s.n}</span>
-                  <div>
-                    <h3 className="font-serif font-bold text-lg text-ink">{s.title}</h3>
-                    <p className="text-sm text-quest-muted mt-1.5 leading-relaxed">{s.body}</p>
-                  </div>
-                </div>
-              </Reveal>
-            ))}
           </div>
         </section>
 
-        {/* ---------------- PERKS ---------------- */}
-        <section className="max-w-6xl mx-auto px-6 sm:px-10 py-24">
-          <Reveal>
-            <Eyebrow>Perks of the climb</Eyebrow>
-            <h2 className="font-serif font-black text-3xl sm:text-4xl text-ink mt-3">
-              Everything waiting on the trail.
+        {/* ABOUT / CTA */}
+        <section
+          id="about"
+          ref={(el) => { sectionElsRef.current.about = el; }}
+          className="max-w-6xl mx-auto px-6 sm:px-10 pb-4"
+        >
+          <div
+            className="max-w-6xl mx-auto rounded-[30px] border border-line text-center p-10 sm:p-14"
+            style={{ background: 'linear-gradient(160deg, #EAF7EE, #F3ECD3)' }}
+          >
+            <h2 className="font-sans font-extrabold text-[clamp(24px,3vw,34px)] mb-3">
+              Your trail starts with one small step.
             </h2>
-          </Reveal>
-
-          <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {perks.map((p, i) => (
-              <Reveal key={p.title} delay={i * 0.06}>
-                <div className="p-5 rounded-2xl bg-paper border border-quest-border shadow-cozy hover:shadow-cozy-hover transition-shadow h-full">
-                  <div className="w-10 h-10 rounded-full bg-quest-accent/10 border border-quest-accent/20 flex items-center justify-center text-quest-accent mb-3">
-                    <p.icon className="w-5 h-5" />
-                  </div>
-                  <h3 className="font-serif font-bold text-base text-ink">{p.title}</h3>
-                  <p className="text-sm text-quest-muted mt-1.5 leading-relaxed">{p.body}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </section>
-
-        {/* ---------------- DUSK CTA ---------------- */}
-        <section className="relative overflow-hidden">
-          <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, #16301f 0%, #0d1f15 100%)' }} />
-          <div className="absolute inset-0 opacity-40" style={{ filter: 'hue-rotate(200deg) brightness(0.55) saturate(0.7)' }}>
-            <BrandHero />
-          </div>
-          <div className="absolute inset-0" aria-hidden="true">
-            {[...Array(24)].map((_, i) => (
-              <span
-                key={i}
-                className="absolute rounded-full bg-white/70"
-                style={{
-                  width: 2 + (i % 3),
-                  height: 2 + (i % 3),
-                  left: `${(i * 37) % 100}%`,
-                  top: `${(i * 53) % 60}%`,
-                  opacity: 0.15 + ((i * 7) % 40) / 100,
-                }}
-              />
-            ))}
-          </div>
-
-          <div className="relative z-10 max-w-3xl mx-auto px-6 sm:px-10 py-28 text-center">
-            <Reveal>
-              <span className="text-4xl block mb-4">🏔️</span>
-              <h2 className="font-serif font-black text-3xl sm:text-4xl text-white leading-tight">
-                Basecamp's ready when you are.
-              </h2>
-              <p className="text-white/70 text-base sm:text-lg mt-4 max-w-xl mx-auto">
-                Bring one goal. Leave with a trail.
-              </p>
-            </Reveal>
-
-            <Reveal delay={0.15}>
-              <div className="flex flex-wrap items-center justify-center gap-3 mt-9">
-                <button
-                  onClick={onSignUp}
-                  className="flex items-center gap-2 py-3.5 px-7 bg-quest-accent text-white font-sans font-bold rounded-xl shadow-active hover:opacity-90 hover:-translate-y-0.5 transition-all cursor-pointer text-sm"
-                >
-                  Create free account <ArrowRight className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={onSignIn}
-                  className="py-3.5 px-6 text-white font-sans font-bold rounded-xl border border-white/25 hover:bg-white/10 transition-colors cursor-pointer text-sm"
-                >
-                  Sign in
-                </button>
-                <button
-                  onClick={onGuest}
-                  disabled={isGuestSubmitting}
-                  className="py-3.5 px-2 text-white/70 hover:text-white font-sans font-bold text-sm cursor-pointer transition-colors underline underline-offset-4 disabled:opacity-60 flex items-center gap-1.5"
-                >
-                  <Compass className="w-3.5 h-3.5" /> {isGuestSubmitting ? 'Entering...' : 'Enter as guest'}
-                </button>
-              </div>
-            </Reveal>
-
-            <p className="text-white/40 text-xs mt-8 font-mono uppercase tracking-widest">
-              No credit card. No spam. Just a mountain and a few steps at a time.
+            <p className="text-ink-soft text-[15.5px] mb-6">
+              Join students turning overwhelm into steady, visible progress.
             </p>
+            <button
+              type="button"
+              onClick={onGetStarted}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-primary text-white font-bold text-sm shadow-active hover:opacity-90 hover:-translate-y-0.5 transition-all cursor-pointer"
+            >
+              Start Your Journey <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
         </section>
+
+        {/* FOOTER */}
+        <footer className="max-w-6xl mx-auto px-6 sm:px-10 py-8 flex flex-wrap items-center justify-between gap-4 border-t border-line text-[13.5px] text-ink-soft">
+          <div className="flex items-center gap-2.5">
+            <Logo className="w-5 h-6 text-primary" />
+            <span className="font-bold text-ink">Strail</span>
+          </div>
+          <div className="flex items-center gap-6 flex-wrap">
+            <a href="#" className="flex items-center gap-1.5 font-bold text-ink-soft hover:text-primary-dk transition-colors">
+              <Instagram className="w-4 h-4" /> Instagram
+            </a>
+            <a href="#" className="font-bold text-ink-soft hover:text-primary-dk transition-colors">Privacy Policy</a>
+            <a href="#" className="font-bold text-ink-soft hover:text-primary-dk transition-colors">Terms &amp; Conditions</a>
+          </div>
+          <div className="font-mono text-[11px] tracking-wide">© 2026 STRAIL · SMALL STEPS, REAL PROGRESS</div>
+        </footer>
       </div>
     </div>
   );

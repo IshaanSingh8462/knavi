@@ -2,28 +2,33 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Lock, Check } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Level } from '../types/index';
-import { sound } from '../lib/sound';
 
 interface Point {
   x: number;
   y: number;
   level: Level;
+  displayStatus: 'locked' | 'active' | 'complete';
 }
 
 interface TrailProps {
   levels: Level[];
   selectedLevelId: string | null;
   onSelect: (level: Level) => void;
+  /** Small uppercase mono label rendered above the trail's bounding box. */
+  title?: string;
+  /** Set false for summary/preview instances — hides pines/rocks/bushes/flowers. Defaults to true (full journey view). */
+  showClutter?: boolean;
 }
 
 const SPACING_Y = 128;
 const TOP_PADDING = 70;
 const BOTTOM_PADDING = 90;
 const NODE_SIZE = 64;
+const LABEL_HEIGHT = 28;
 
 const EMOJI_SET = ['📘', '🎯', '🧠', '✏️', '🔍', '💡', '🗣️', '📐', '🧩', '⚡'];
 
-function computePositions(levels: Level[], width: number): Point[] {
+function computePositions(levels: Level[], width: number): { x: number; y: number; level: Level }[] {
   const amplitude = Math.min(width * 0.26, 170);
   const centerX = width / 2;
   return levels.map((level, i) => ({
@@ -31,6 +36,27 @@ function computePositions(levels: Level[], width: number): Point[] {
     y: TOP_PADDING + i * SPACING_Y,
     level,
   }));
+}
+
+// Render-time status is derived from position relative to the active node,
+// not trusted verbatim from level.status — this is what guarantees a node
+// past "active" can never render as an unlocked/"todo" style even if the
+// underlying data is stale or out of order.
+function deriveDisplayStatuses(levels: Level[]): ('locked' | 'active' | 'complete')[] {
+  const activeIdx = levels.findIndex((l) => l.status === 'active');
+  const allComplete = levels.length > 0 && levels.every((l) => l.status === 'complete');
+
+  return levels.map((l, i) => {
+    if (allComplete) return 'complete';
+    if (activeIdx === -1) {
+      // No active node found (e.g. everything still locked) — fall back
+      // to trusting complete flags only; everything else is locked.
+      return l.status === 'complete' ? 'complete' : 'locked';
+    }
+    if (i < activeIdx) return 'complete';
+    if (i === activeIdx) return 'active';
+    return 'locked'; // anything after active is ALWAYS locked, never "todo"
+  });
 }
 
 function smoothPath(points: { x: number; y: number }[]): string {
@@ -84,7 +110,7 @@ function Flower({ x, y }: { x: number; y: number }) {
   );
 }
 
-export default function Trail({ levels, selectedLevelId, onSelect }: TrailProps) {
+export default function Trail({ levels, selectedLevelId, onSelect, title, showClutter = true }: TrailProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
 
@@ -98,21 +124,26 @@ export default function Trail({ levels, selectedLevelId, onSelect }: TrailProps)
     return () => observer.disconnect();
   }, []);
 
-  const points = useMemo(() => computePositions(levels, width), [levels, width]);
+  const rawPoints = useMemo(() => computePositions(levels, width), [levels, width]);
+  const displayStatuses = useMemo(() => deriveDisplayStatuses(levels), [levels]);
+  const points: Point[] = useMemo(
+    () => rawPoints.map((p, i) => ({ ...p, displayStatus: displayStatuses[i] })),
+    [rawPoints, displayStatuses]
+  );
   const pathD = useMemo(() => smoothPath(points), [points]);
   const totalHeight = TOP_PADDING + Math.max(0, levels.length - 1) * SPACING_Y + BOTTOM_PADDING;
 
   const litCount = useMemo(() => {
-    const activeIdx = levels.findIndex((l) => l.status === 'active');
+    const activeIdx = displayStatuses.findIndex((s) => s === 'active');
     if (activeIdx >= 0) return activeIdx + 1;
-    if (levels.length > 0 && levels.every((l) => l.status === 'complete')) return levels.length;
-    return Math.max(1, levels.filter((l) => l.status !== 'locked').length);
-  }, [levels]);
+    if (levels.length > 0 && displayStatuses.every((s) => s === 'complete')) return levels.length;
+    return Math.max(1, displayStatuses.filter((s) => s !== 'locked').length);
+  }, [displayStatuses, levels.length]);
 
   const litPathD = useMemo(() => smoothPath(points.slice(0, litCount)), [points, litCount]);
 
   const clutter = useMemo(() => {
-    if (width === 0) return [];
+    if (width === 0 || !showClutter) return [];
     const items: { type: 'pine' | 'bush' | 'rock' | 'flower'; x: number; y: number; scale: number }[] = [];
     const margin = 26;
     for (let i = 0; i < points.length - 1; i++) {
@@ -140,124 +171,124 @@ export default function Trail({ levels, selectedLevelId, onSelect }: TrailProps)
       }
     }
     return items;
-  }, [points, width]);
+  }, [points, width, showClutter]);
 
   if (levels.length === 0) {
     return (
       <div className="py-14 text-center">
         <p className="text-3xl mb-2">🥾</p>
-        <p className="text-sm text-quest-muted italic">No steps charted on this trail yet.</p>
+        <p className="text-sm text-ink-soft italic">No steps charted on this trail yet.</p>
       </div>
     );
   }
 
   return (
-    <div
-      ref={containerRef}
-      className="relative w-full rounded-2xl overflow-hidden border border-quest-border shadow-cozy"
-      style={{ height: totalHeight, background: 'linear-gradient(180deg, #8ccb8c 0%, #6cb87a 100%)' }}
-    >
-      {width > 0 && (
-        <>
-          <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 ${width} ${totalHeight}`} aria-hidden="true">
-            {clutter.map((c, i) => (
-              <g key={i}>
-                {c.type === 'pine' ? (
-                  <Pine x={c.x} y={c.y} scale={c.scale} />
-                ) : c.type === 'bush' ? (
-                  <Bush x={c.x} y={c.y} scale={c.scale} />
-                ) : c.type === 'rock' ? (
-                  <Rock x={c.x} y={c.y} scale={c.scale} />
-                ) : (
-                  <Flower x={c.x} y={c.y} />
-                )}
-              </g>
-            ))}
-
-            <path d={pathD} fill="none" stroke="#dfc98a" strokeWidth={30} strokeLinecap="round" strokeLinejoin="round" />
-            <path
-              d={pathD}
-              fill="none"
-              stroke="#c2a866"
-              strokeWidth={30}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              opacity={0.18}
-              transform="translate(3,3)"
-              style={{ mixBlendMode: 'multiply' }}
-            />
-
-            <motion.path
-              key={litCount}
-              d={litPathD}
-              fill="none"
-              stroke="#3fa35c"
-              strokeWidth={6}
-              strokeLinecap="round"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.4, ease: 'easeOut' }}
-            />
-          </svg>
-
-          {points.map(({ x, y, level }) => {
-            const isCompleted = level.status === 'complete';
-            const isLocked = level.status === 'locked';
-            const isActive = level.status === 'active';
-            const isSelected = selectedLevelId === level.id;
-            const emoji = EMOJI_SET[Math.abs(level.title.length + level.branch_order) % EMOJI_SET.length];
-
-            return (
-              <div key={level.id} className="absolute" style={{ left: x, top: y, transform: 'translate(-50%, -50%)' }}>
-                <motion.button
-                  type="button"
-                  data-sound="none"
-                  onClick={() => {
-                    sound.pop();
-                    onSelect(level);
-                  }}
-                  aria-label={`${level.title} — ${level.status}`}
-                  initial={{ opacity: 0, scale: 0.7 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.3, ease: 'easeOut' }}
-                  className="block cursor-pointer"
-                >
-                  <div
-                    className={`relative rounded-full border-[6px] flex items-center justify-center text-2xl shadow-cozy select-none ${
-                      isActive ? 'scale-110 shadow-active' : ''
-                    } ${isLocked ? 'opacity-60 grayscale' : ''} ${isSelected ? 'ring-4 ring-white/60' : ''}`}
-                    style={{
-                      width: NODE_SIZE,
-                      height: NODE_SIZE,
-                      backgroundColor: '#6b4a2b',
-                      borderColor: isActive ? '#f0c060' : '#dfc98a',
-                    }}
-                  >
-                    {isActive && (
-                      <motion.span
-                        className="absolute -inset-1.5 rounded-full border-2"
-                        style={{ borderColor: '#f0c060' }}
-                        animate={{ scale: [1, 1.25], opacity: [0.6, 0] }}
-                        transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
-                      />
-                    )}
-                    {isLocked ? (
-                      <Lock className="w-5 h-5 text-[#dfc98a]" />
-                    ) : (
-                      <span>{emoji}</span>
-                    )}
-                    {isCompleted && (
-                      <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-quest-moss border-2 border-white flex items-center justify-center">
-                        <Check className="w-3.5 h-3.5 text-white" />
-                      </span>
-                    )}
-                  </div>
-                </motion.button>
-              </div>
-            );
-          })}
-        </>
+    <div>
+      {title && (
+        <div className="mb-2 text-left">
+          <span className="text-[10px] font-mono uppercase tracking-widest text-ink-soft">{title}</span>
+        </div>
       )}
+      <div
+        ref={containerRef}
+        className="relative w-full rounded-2xl overflow-hidden border border-line shadow-cozy"
+        style={{ height: totalHeight, background: 'linear-gradient(180deg, #8ccb8c 0%, #6cb87a 100%)' }}
+      >
+        {width > 0 && (
+          <>
+            <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 ${width} ${totalHeight}`} aria-hidden="true">
+              {clutter.map((c, i) => (
+                <g key={i}>
+                  {c.type === 'pine' ? (
+                    <Pine x={c.x} y={c.y} scale={c.scale} />
+                  ) : c.type === 'bush' ? (
+                    <Bush x={c.x} y={c.y} scale={c.scale} />
+                  ) : c.type === 'rock' ? (
+                    <Rock x={c.x} y={c.y} scale={c.scale} />
+                  ) : (
+                    <Flower x={c.x} y={c.y} />
+                  )}
+                </g>
+              ))}
+
+              <path d={pathD} fill="none" stroke="var(--color-trail)" strokeWidth={30} strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d={pathD}
+                fill="none"
+                stroke="#c2a866"
+                strokeWidth={30}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity={0.18}
+                transform="translate(3,3)"
+                style={{ mixBlendMode: 'multiply' }}
+              />
+
+              <motion.path
+                key={litCount}
+                d={litPathD}
+                fill="none"
+                stroke="var(--color-primary)"
+                strokeWidth={6}
+                strokeLinecap="round"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.4, ease: 'easeOut' }}
+              />
+            </svg>
+
+            {points.map(({ x, y, level, displayStatus }) => {
+              const isCompleted = displayStatus === 'complete';
+              const isLocked = displayStatus === 'locked';
+              const isActive = displayStatus === 'active';
+              const isSelected = selectedLevelId === level.id;
+              const emoji = EMOJI_SET[Math.abs(level.title.length + level.branch_order) % EMOJI_SET.length];
+
+              return (
+                <div key={level.id} className="absolute" style={{ left: x, top: y, transform: 'translate(-50%, -50%)' }}>
+                  <motion.button
+                    type="button"
+                    onClick={() => onSelect(level)}
+                    aria-label={`${level.title} — ${displayStatus}`}
+                    initial={{ opacity: 0, scale: 0.7 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3, ease: 'easeOut' }}
+                    className="block cursor-pointer"
+                  >
+                    <div
+                      className={`relative rounded-full flex items-center justify-center text-2xl shadow-cozy select-none ${
+                        isLocked ? 'border-[3px] border-dashed bg-surface' : 'border-[6px] bg-wood-gradient'
+                      } ${isActive ? 'scale-110 shadow-active' : ''} ${isCompleted ? 'opacity-80' : ''} ${
+                        isSelected ? 'ring-4 ring-white/60' : ''
+                      }`}
+                      style={{
+                        width: NODE_SIZE,
+                        height: NODE_SIZE,
+                        borderColor: isLocked ? 'var(--color-line)' : isActive ? '#f0c060' : 'var(--color-trail)',
+                      }}
+                    >
+                      {isActive && (
+                        <motion.span
+                          className="absolute -inset-1.5 rounded-full border-2"
+                          style={{ borderColor: '#f0c060' }}
+                          animate={{ scale: [1, 1.25], opacity: [0.6, 0] }}
+                          transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
+                        />
+                      )}
+                      {isLocked ? <Lock className="w-5 h-5 text-ink-soft" /> : <span>{emoji}</span>}
+                      {isCompleted && (
+                        <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary border-2 border-surface flex items-center justify-center">
+                          <Check className="w-3.5 h-3.5 text-white" />
+                        </span>
+                      )}
+                    </div>
+                  </motion.button>
+                </div>
+              );
+            })}
+          </>
+        )}
+      </div>
     </div>
   );
 }
