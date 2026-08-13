@@ -360,7 +360,7 @@ export default function App() {
 
               <form onSubmit={handleAuthSubmit} className="space-y-3.5">
                 {!isAuthModeLogin && (
-                  <div className="flex items-center gap-3 px-4 py-3.5 border border-line rounded-xl bg-[#f7fbf8] focus-within:border-primary transition-colors">
+                  <div className="flex items-center gap-3 px-4 py-3.5 border border-line rounded-xl bg-[#F3ECD8] focus-within:border-primary transition-colors">
                     <UserRound className="w-4.5 h-4.5 text-ink-soft shrink-0" />
                     <input
                       type="text"
@@ -373,7 +373,7 @@ export default function App() {
                   </div>
                 )}
 
-                <div className="flex items-center gap-3 px-4 py-3.5 border border-line rounded-xl bg-[#f7fbf8] focus-within:border-primary transition-colors">
+                <div className="flex items-center gap-3 px-4 py-3.5 border border-line rounded-xl bg-[#F3ECD8] focus-within:border-primary transition-colors">
                   <Mail className="w-4.5 h-4.5 text-ink-soft shrink-0" />
                   <input
                     type="email"
@@ -385,7 +385,7 @@ export default function App() {
                   />
                 </div>
 
-                <div className="flex items-center gap-3 px-4 py-3.5 border border-line rounded-xl bg-[#f7fbf8] focus-within:border-primary transition-colors">
+                <div className="flex items-center gap-3 px-4 py-3.5 border border-line rounded-xl bg-[#F3ECD8] focus-within:border-primary transition-colors">
                   <Lock className="w-4.5 h-4.5 text-ink-soft shrink-0" />
                   <input
                     type="password"

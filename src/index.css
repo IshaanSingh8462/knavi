@@ -1,43 +1,69 @@
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@100..800&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@100..800&family=Manrope:wght@400..800&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Sora", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Sora", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-body: "Manrope", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Sora", "Inter", ui-sans-serif, system-ui, sans-serif;
 
-  /* Strail palette — matches the reference template exactly */
-  --color-void: #F2FAF3;
-  --color-surface: #FFFFFF;
-  --color-primary: #3FA35C;
-  --color-primary-dk: #2E8548;
-  --color-primary-soft: #63B57F;
+  /* Strail palette — unified with the landing page's warm cream / forest /
+     gold marketing palette (previously the app used a separate mint-green
+     system; this remaps every app token to the landing page's actual
+     colors so Task Init, Trails, Journeys, and the landing page all read
+     as one product). */
+  --color-void: #F7F1E1;
+  --color-surface: #FBF8F1;
+  --color-primary: #2A6E3E;
+  --color-primary-dk: #1F4E2C;
+  --color-primary-soft: #4E8F63;
   --color-trail: #DFC98A;
-  --color-trail-dk: #C4A85F;
-  --color-wood: #B98552;
-  --color-wood-dk: #8B5E34;
-  --color-ink: #26312B;
-  --color-ink-soft: #5C6B62;
-  --color-line: #DEE8E0;
-  --color-moss: #245b35;      /* kept for existing completed-state usages elsewhere in the app */
-  --color-rose: #d9534f;      /* kept for existing alert usages elsewhere in the app */
-  --color-strail-sky: #a9d8f5;
+  --color-trail-dk: #B98F4B;
+  --color-wood: #A8825A;
+  --color-wood-dk: #6B4A2E;
+  --color-ink: #1B1B16;
+  --color-ink-soft: #54503F;
+  --color-line: #E6DCC2;
+  --color-moss: #1F4E2C;      /* completed-state usages elsewhere in the app */
+  --color-rose: #B23B32;      /* alert usages elsewhere in the app, warmed to match the palette */
+  --color-strail-sky: #7FA8C9;
+
+  /* Landing page palette ("lp-" prefixed) — warm cream/forest/gold marketing
+     theme, kept separate from the app's mint/green product palette above so
+     restyling the landing page can never shift colors inside the real app. */
+  --color-lp-cream: #F7F1E1;
+  --color-lp-cream-deep: #EDE2C4;
+  --color-lp-cream-paper: #FBF8F1;
+  --color-lp-forest-700: #2B4E35;
+  --color-lp-forest-900: #152B1E;
+  --color-lp-forest-950: #0E1E15;
+  --color-lp-gold-400: #DFC98A;
+  --color-lp-gold-600: #B98F4B;
+  --color-lp-trail-100: #E7F2E3;
+  --color-lp-trail-300: #9CD6A6;
+  --color-lp-trail-600: #2A6E3E;
+  --color-lp-bark-300: #A8825A;
+  --color-lp-bark-500: #6B4A2E;
+  --color-lp-ink: #1B1B16;
+  --color-lp-ink-soft: #54503F;
+  --color-lp-ink-faint: #645C48;
 }
 
 @utility bg-wood-gradient {
-  background: radial-gradient(circle at 32% 28%, #D4A06B, var(--color-wood) 55%, var(--color-wood-dk) 100%);
+  background: radial-gradient(circle at 32% 28%, #D9B98B, var(--color-wood) 55%, var(--color-wood-dk) 100%);
 }
 
 @utility shadow-cozy {
-  box-shadow: 0 14px 30px -20px rgba(38, 49, 43, 0.25);
+  box-shadow: 0 14px 30px -20px rgba(27, 27, 22, 0.3);
 }
 
 @utility shadow-cozy-hover {
-  box-shadow: 0 16px 34px -18px rgba(63, 163, 92, 0.28);
+  box-shadow: 0 16px 34px -18px rgba(42, 110, 62, 0.32);
 }
 
 @utility shadow-active {
-  box-shadow: 0 0 0 5px rgba(63, 163, 92, 0.16), 0 8px 16px -6px rgba(139, 94, 52, 0.45);
+  box-shadow: 0 0 0 5px rgba(42, 110, 62, 0.16), 0 8px 16px -6px rgba(107, 74, 46, 0.45);
 }
 
 body {
@@ -70,8 +96,8 @@ body {
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(38, 49, 43, 0.15); border-radius: 999px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(38, 49, 43, 0.25); }
+::-webkit-scrollbar-thumb { background: rgba(27, 27, 22, 0.15); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(27, 27, 22, 0.25); }
 
 html { scroll-behavior: smooth; }
 

@@ -208,7 +208,7 @@ export default function WeeklySetup({ user, onPlanGenerated }: WeeklySetupProps)
                   placeholder="e.g. Study for AP Calculus exam, Write thesis draft"
                   value={task.title}
                   onChange={(e) => handleUpdateTask(index, 'title', e.target.value)}
-                  className="p-2.5 border border-line rounded-lg font-sans text-ink bg-[#f7fbf8]/50 focus:outline-none focus:border-primary text-sm"
+                  className="p-2.5 border border-line rounded-lg font-sans text-ink bg-[#F3ECD8]/50 focus:outline-none focus:border-primary text-sm"
                 />
               </div>
 
@@ -216,7 +216,7 @@ export default function WeeklySetup({ user, onPlanGenerated }: WeeklySetupProps)
                 <select
                   value={task.subject}
                   onChange={(e) => handleUpdateTask(index, 'subject', e.target.value)}
-                  className="w-full p-2.5 border border-line rounded-lg font-sans text-sm text-ink bg-[#f7fbf8]/50 focus:outline-none focus:border-primary"
+                  className="w-full p-2.5 border border-line rounded-lg font-sans text-sm text-ink bg-[#F3ECD8]/50 focus:outline-none focus:border-primary"
                 >
                   <option value="Math">Math</option>
                   <option value="English">English</option>
@@ -270,7 +270,7 @@ export default function WeeklySetup({ user, onPlanGenerated }: WeeklySetupProps)
                   placeholder="e.g. Practice violin recital solo, design portfolio wireframes"
                   value={act}
                   onChange={(e) => handleUpdateCustomActivity(index, e.target.value)}
-                  className="w-full p-2.5 border border-line rounded-lg font-sans text-sm text-ink bg-[#f7fbf8]/50 focus:outline-none focus:border-primary"
+                  className="w-full p-2.5 border border-line rounded-lg font-sans text-sm text-ink bg-[#F3ECD8]/50 focus:outline-none focus:border-primary"
                 />
               </div>
               <button

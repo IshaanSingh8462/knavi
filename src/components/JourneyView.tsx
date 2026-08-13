@@ -258,13 +258,13 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
       <AnimatePresence>
         {isCelebrationOpen && (
           <motion.div
-            className="fixed inset-0 bg-[#2d3748]/85 backdrop-blur-md z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-[#1B1B16]/85 backdrop-blur-md z-50 flex items-center justify-center p-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="bg-[#ffffff] p-8 rounded-3xl border border-line max-w-md w-full text-center shadow-active"
+              className="bg-[#FBF8F1] p-8 rounded-3xl border border-line max-w-md w-full text-center shadow-active"
               initial={{ scale: 0.85, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: 'spring', damping: 20, stiffness: 260 }}
@@ -500,7 +500,7 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
                     className={`py-3 px-4 rounded-xl border font-sans font-bold text-xs flex flex-col items-center justify-center gap-1.5 transition-all text-center cursor-pointer ${
                       forgeMode === 'academic'
                         ? 'border-primary/50 bg-primary/10 text-ink shadow-active ring-1 ring-primary/20'
-                        : 'border-black/5 bg-[#f7fbf8]/40 text-ink-soft hover:text-ink'
+                        : 'border-black/5 bg-[#F3ECD8]/40 text-ink-soft hover:text-ink'
                     }`}
                   >
                     <span className="text-xl">📚</span>
@@ -521,7 +521,7 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
                     className={`py-3 px-4 rounded-xl border font-sans font-bold text-xs flex flex-col items-center justify-center gap-1.5 transition-all text-center cursor-pointer ${
                       forgeMode === 'custom'
                         ? 'border-moss/50 bg-moss/10 text-ink shadow-active ring-1 ring-moss/20'
-                        : 'border-black/5 bg-[#f7fbf8]/40 text-ink-soft hover:text-ink'
+                        : 'border-black/5 bg-[#F3ECD8]/40 text-ink-soft hover:text-ink'
                     }`}
                   >
                     <span className="text-xl">🧭</span>
@@ -546,7 +546,7 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
                         setAcknowledgeDuplicate(false);
                       }}
                       placeholder={forgeMode === 'academic' ? 'e.g. Study for physics quiz' : 'e.g. Learn to speak Spanish'}
-                      className="p-2.5 border border-line bg-[#f7fbf8] text-xs text-ink rounded-lg focus:outline-none focus:border-primary"
+                      className="p-2.5 border border-line bg-[#F3ECD8] text-xs text-ink rounded-lg focus:outline-none focus:border-primary"
                     />
                   </div>
                   <div className="md:col-span-3 flex flex-col">
@@ -555,7 +555,7 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
                       disabled={isDecomposing}
                       value={newTaskSubject}
                       onChange={(e) => setNewTaskSubject(e.target.value)}
-                      className="p-2.5 border border-line bg-[#f7fbf8] text-xs text-ink rounded-lg focus:outline-none focus:border-primary h-[38px]"
+                      className="p-2.5 border border-line bg-[#F3ECD8] text-xs text-ink rounded-lg focus:outline-none focus:border-primary h-[38px]"
                     >
                       <option value="Math">Math</option>
                       <option value="English">English</option>
@@ -571,7 +571,7 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
                       disabled={isDecomposing}
                       value={newTaskBranch}
                       onChange={(e) => setNewTaskBranch(e.target.value as 'academic' | 'custom')}
-                      className="p-2.5 border border-line bg-[#f7fbf8] text-xs text-ink rounded-lg focus:outline-none focus:border-primary h-[38px]"
+                      className="p-2.5 border border-line bg-[#F3ECD8] text-xs text-ink rounded-lg focus:outline-none focus:border-primary h-[38px]"
                     >
                       <option value="academic">Academic Trail</option>
                       <option value="custom">Custom Trail</option>
@@ -596,7 +596,7 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="bg-[#f7fbf8]/60 p-4 rounded-xl border border-dashed border-primary/30 flex items-start justify-between gap-3">
+                <div className="bg-[#F3ECD8]/60 p-4 rounded-xl border border-dashed border-primary/30 flex items-start justify-between gap-3">
                   <div>
                     <span className="text-[10px] font-mono text-primary-soft tracking-widest uppercase">Confirmed Goal</span>
                     <h5 className="font-serif font-black text-ink text-md mt-0.5">{newTaskTitle}</h5>

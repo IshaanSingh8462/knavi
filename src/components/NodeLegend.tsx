@@ -39,11 +39,11 @@ export default function NodeLegend() {
         <div className="relative">
           <div
             className="rounded-full border-[6px] bg-wood-gradient"
-            style={{ width: CIRCLE, height: CIRCLE, borderColor: '#f0c060' }}
+            style={{ width: CIRCLE, height: CIRCLE, borderColor: '#B98F4B' }}
           />
           <motion.span
             className="absolute -inset-1.5 rounded-full border-2"
-            style={{ borderColor: '#f0c060' }}
+            style={{ borderColor: '#B98F4B' }}
             animate={{ scale: [1, 1.25], opacity: [0.6, 0] }}
             transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
           />

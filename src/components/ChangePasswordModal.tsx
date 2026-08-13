@@ -62,7 +62,7 @@ export default function ChangePasswordModal({ email, onClose }: ChangePasswordMo
 
   return (
     <motion.div
-      className="fixed inset-0 bg-[#2d3748]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-[#1B1B16]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -117,7 +117,7 @@ export default function ChangePasswordModal({ email, onClose }: ChangePasswordMo
             )}
 
             <form onSubmit={handleSubmit} className="space-y-3">
-              <div className="flex items-center gap-3 px-4 py-3 border border-line rounded-xl bg-[#f7fbf8] focus-within:border-primary transition-colors">
+              <div className="flex items-center gap-3 px-4 py-3 border border-line rounded-xl bg-[#F3ECD8] focus-within:border-primary transition-colors">
                 <Lock className="w-4 h-4 text-ink-soft shrink-0" />
                 <input
                   type="password"
@@ -129,7 +129,7 @@ export default function ChangePasswordModal({ email, onClose }: ChangePasswordMo
                 />
               </div>
 
-              <div className="flex items-center gap-3 px-4 py-3 border border-line rounded-xl bg-[#f7fbf8] focus-within:border-primary transition-colors">
+              <div className="flex items-center gap-3 px-4 py-3 border border-line rounded-xl bg-[#F3ECD8] focus-within:border-primary transition-colors">
                 <Lock className="w-4 h-4 text-ink-soft shrink-0" />
                 <input
                   type="password"
@@ -142,7 +142,7 @@ export default function ChangePasswordModal({ email, onClose }: ChangePasswordMo
                 />
               </div>
 
-              <div className="flex items-center gap-3 px-4 py-3 border border-line rounded-xl bg-[#f7fbf8] focus-within:border-primary transition-colors">
+              <div className="flex items-center gap-3 px-4 py-3 border border-line rounded-xl bg-[#F3ECD8] focus-within:border-primary transition-colors">
                 <Lock className="w-4 h-4 text-ink-soft shrink-0" />
                 <input
                   type="password"

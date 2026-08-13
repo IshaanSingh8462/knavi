@@ -127,7 +127,7 @@ export default function OnboardingFlow({ user, onOnboardingComplete }: Onboardin
                 value={currentName}
                 onChange={(e) => setCurrentName(e.target.value)}
                 placeholder="e.g. Soccer Practice, Math Club, Debate Prep"
-                className="p-3 border border-line rounded-lg text-ink bg-[#f7fbf8] focus:outline-none focus:border-primary transition-colors text-sm"
+                className="p-3 border border-line rounded-lg text-ink bg-[#F3ECD8] focus:outline-none focus:border-primary transition-colors text-sm"
               />
             </div>
 
@@ -145,7 +145,7 @@ export default function OnboardingFlow({ user, onOnboardingComplete }: Onboardin
                       type="button"
                       onClick={() => setCurrentType(cat.type)}
                       className={`flex items-center gap-2 p-2 px-3 rounded-lg border text-left text-xs font-medium cursor-pointer transition-colors ${
-                        isSel ? 'border-primary bg-primary/20 text-ink' : 'border-black/5 hover:border-black/10 bg-[#f7fbf8]/40 text-ink-soft'
+                        isSel ? 'border-primary bg-primary/20 text-ink' : 'border-black/5 hover:border-black/10 bg-[#F3ECD8]/40 text-ink-soft'
                       }`}
                     >
                       <Icon className="w-3.5 h-3.5" />
@@ -169,7 +169,7 @@ export default function OnboardingFlow({ user, onOnboardingComplete }: Onboardin
                       type="button"
                       onClick={() => toggleDay(d)}
                       className={`w-9 h-9 font-medium text-xs rounded-lg border flex items-center justify-center transition-all cursor-pointer ${
-                        isPicked ? 'bg-primary text-white border-primary' : 'border-line bg-[#f7fbf8] text-ink-soft'
+                        isPicked ? 'bg-primary text-white border-primary' : 'border-line bg-[#F3ECD8] text-ink-soft'
                       }`}
                     >
                       {d}
@@ -188,7 +188,7 @@ export default function OnboardingFlow({ user, onOnboardingComplete }: Onboardin
                   type="time"
                   value={currentStartTime}
                   onChange={(e) => setCurrentStartTime(e.target.value)}
-                  className="p-2 border border-line rounded-lg text-sm text-ink bg-[#f7fbf8] focus:outline-none focus:border-primary"
+                  className="p-2 border border-line rounded-lg text-sm text-ink bg-[#F3ECD8] focus:outline-none focus:border-primary"
                 />
               </div>
               <div className="flex flex-col">
@@ -198,7 +198,7 @@ export default function OnboardingFlow({ user, onOnboardingComplete }: Onboardin
                 <select
                   value={currentDuration}
                   onChange={(e) => setCurrentDuration(Number(e.target.value))}
-                  className="p-2 border border-line rounded-lg text-sm text-ink bg-[#f7fbf8] focus:outline-none focus:border-primary"
+                  className="p-2 border border-line rounded-lg text-sm text-ink bg-[#F3ECD8] focus:outline-none focus:border-primary"
                 >
                   <option value={30}>30 mins</option>
                   <option value={45}>45 mins</option>
@@ -254,7 +254,7 @@ export default function OnboardingFlow({ user, onOnboardingComplete }: Onboardin
                         initial={{ opacity: 0, x: 10 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -10 }}
-                        className="p-4 bg-[#f7fbf8] border border-black/5 hover:border-black/10 rounded-xl flex items-center justify-between transition-colors"
+                        className="p-4 bg-[#F3ECD8] border border-black/5 hover:border-black/10 rounded-xl flex items-center justify-between transition-colors"
                       >
                         <div className="flex items-center gap-3">
                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${matchCat.bg} border`}>

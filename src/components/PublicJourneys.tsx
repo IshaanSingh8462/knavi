@@ -320,13 +320,13 @@ export default function PublicJourneys({ isGuestMode = false, onBack, onRequestS
         ) : (
           previewLevel && (
             <motion.div
-              className="fixed inset-0 bg-[#2d3748]/70 backdrop-blur-sm z-40"
+              className="fixed inset-0 bg-[#1B1B16]/70 backdrop-blur-sm z-40"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               onClick={() => setPreviewLevel(null)}
             >
               <motion.div
-                className="fixed bottom-0 left-0 right-0 bg-[#ffffff] border-t border-line rounded-t-3xl shadow-cozy px-6 pt-5 pb-8 max-w-xl mx-auto"
+                className="fixed bottom-0 left-0 right-0 bg-[#FBF8F1] border-t border-line rounded-t-3xl shadow-cozy px-6 pt-5 pb-8 max-w-xl mx-auto"
                 initial={{ y: '100%' }}
                 animate={{ y: 0 }}
                 onClick={(e) => e.stopPropagation()}

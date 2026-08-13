@@ -75,25 +75,25 @@ function Pine({ x, y, scale = 1 }: { x: number; y: number; scale?: number }) {
   return (
     <g transform={`translate(${x} ${y}) scale(${scale})`} opacity={0.95}>
       <rect x={-3} y={16} width="6" height="9" rx="1.5" fill="#6b4a2b" />
-      <path d="M 0 -20 L 12 4 L -12 4 Z" fill="#1f4d2e" />
-      <path d="M 0 -9 L 15 12 L -15 12 Z" fill="#2c6b40" />
+      <path d="M 0 -20 L 12 4 L -12 4 Z" fill="#1F4E2C" />
+      <path d="M 0 -9 L 15 12 L -15 12 Z" fill="#2A6E3E" />
     </g>
   );
 }
 function Bush({ x, y, scale = 1 }: { x: number; y: number; scale?: number }) {
   return (
     <g transform={`translate(${x} ${y}) scale(${scale})`} opacity={0.95}>
-      <circle cx="0" cy="0" r="10" fill="#2c6b40" />
-      <circle cx="-8" cy="4" r="7.5" fill="#2c6b40" />
-      <circle cx="9" cy="5" r="7" fill="#2c6b40" />
+      <circle cx="0" cy="0" r="10" fill="#2A6E3E" />
+      <circle cx="-8" cy="4" r="7.5" fill="#2A6E3E" />
+      <circle cx="9" cy="5" r="7" fill="#2A6E3E" />
     </g>
   );
 }
 function Rock({ x, y, scale = 1 }: { x: number; y: number; scale?: number }) {
   return (
     <g transform={`translate(${x} ${y}) scale(${scale})`} opacity={0.95}>
-      <ellipse cx="0" cy="4" rx="12" ry="6" fill="#a9b3ad" />
-      <ellipse cx="9" cy="5.5" rx="7" ry="4" fill="#909c94" />
+      <ellipse cx="0" cy="4" rx="12" ry="6" fill="#B7A98C" />
+      <ellipse cx="9" cy="5.5" rx="7" ry="4" fill="#93805F" />
     </g>
   );
 }
@@ -191,7 +191,7 @@ export default function Trail({ levels, selectedLevelId, onSelect, title, showCl
       <div
         ref={containerRef}
         className="relative w-full rounded-2xl overflow-hidden border border-line shadow-cozy"
-        style={{ height: totalHeight, background: 'linear-gradient(180deg, #8ccb8c 0%, #6cb87a 100%)' }}
+        style={{ height: totalHeight, background: 'linear-gradient(180deg, #E7F2E3 0%, #EDE2C4 100%)' }}
       >
         {width > 0 && (
           <>
@@ -214,7 +214,7 @@ export default function Trail({ levels, selectedLevelId, onSelect, title, showCl
               <path
                 d={pathD}
                 fill="none"
-                stroke="#c2a866"
+                stroke="var(--color-trail-dk)"
                 strokeWidth={30}
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -263,13 +263,13 @@ export default function Trail({ levels, selectedLevelId, onSelect, title, showCl
                       style={{
                         width: NODE_SIZE,
                         height: NODE_SIZE,
-                        borderColor: isLocked ? 'var(--color-line)' : isActive ? '#f0c060' : 'var(--color-trail)',
+                        borderColor: isLocked ? 'var(--color-line)' : isActive ? '#B98F4B' : 'var(--color-trail)',
                       }}
                     >
                       {isActive && (
                         <motion.span
                           className="absolute -inset-1.5 rounded-full border-2"
-                          style={{ borderColor: '#f0c060' }}
+                          style={{ borderColor: '#B98F4B' }}
                           animate={{ scale: [1, 1.25], opacity: [0.6, 0] }}
                           transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
                         />

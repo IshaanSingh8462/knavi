@@ -98,7 +98,7 @@ export default function NodeDetail({
       {level && (
         <>
           <motion.div
-            className="fixed inset-0 bg-[#2d3748]/50 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-[#1B1B16]/50 backdrop-blur-sm z-40"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
