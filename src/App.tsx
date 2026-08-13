@@ -8,6 +8,7 @@ import Dashboard from './components/Dashboard';
 import PublicJourneys from './components/PublicJourneys';
 import BrandHero from './components/BrandHero';
 import LandingPage from './components/LandingPage';
+import BackgroundScene from './components/BackgroundScene';
 import SoundToggle from './components/SoundToggle';
 import ChangePasswordModal from './components/ChangePasswordModal';
 
@@ -40,11 +41,19 @@ function useGlobalClickSound() {
 
 const EMPTY_STREAK: Streak = { id: '', user_id: '', streak_count: 0, last_active_date: null, longest_streak: 0 };
 
-function GlassWrapper({ children }: { children: React.ReactNode }) {
+function GlassWrapper({ children, showScenery = false }: { children: React.ReactNode; showScenery?: boolean }) {
   return (
     <div className="min-h-screen bg-void text-ink overflow-hidden relative flex flex-col">
-      <div className="absolute top-[-100px] left-[-100px] w-[500px] h-[500px] bg-quest-accent/10 rounded-full blur-[120px] pointer-events-none z-0" />
-      <div className="absolute bottom-[-100px] right-[-100px] w-[600px] h-[600px] bg-quest-moss/10 rounded-full blur-[140px] pointer-events-none z-0" />
+      {showScenery ? (
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <BackgroundScene preserveAspectRatio="xMidYMid slice" />
+        </div>
+      ) : (
+        <>
+          <div className="absolute top-[-100px] left-[-100px] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] pointer-events-none z-0" />
+          <div className="absolute bottom-[-100px] right-[-100px] w-[600px] h-[600px] bg-moss/10 rounded-full blur-[140px] pointer-events-none z-0" />
+        </>
+      )}
       <div className="relative z-10 flex-1 flex flex-col">{children}</div>
     </div>
   );
@@ -61,7 +70,7 @@ function userFromSupabase(supaUser: any): User {
 
 function hasSeenOnboarding(userId: string): boolean {
   try {
-    return window.localStorage.getItem(`quest_onboarding_seen_${userId}`) === '1';
+    return window.localStorage.getItem(`strail_onboarding_seen_${userId}`) === '1';
   } catch {
     return false;
   }
@@ -257,12 +266,12 @@ export default function App() {
     return (
       <GlassWrapper>
         <div className="flex-1 flex items-center justify-center px-4 py-12">
-          <div className="max-w-lg w-full bg-paper border border-quest-border p-8 rounded-2xl shadow-cozy text-left">
-            <AlertCircle className="w-8 h-8 text-quest-rose mb-3" />
+          <div className="max-w-lg w-full bg-surface border border-line p-8 rounded-2xl shadow-cozy text-left">
+            <AlertCircle className="w-8 h-8 text-rose mb-3" />
             <h1 className="font-serif font-black text-2xl text-ink">Supabase isn't configured yet</h1>
-            <p className="text-sm text-quest-muted mt-2 leading-relaxed">
-              Add <code className="text-quest-accent-soft">VITE_SUPABASE_URL</code> and{' '}
-              <code className="text-quest-accent-soft">VITE_SUPABASE_ANON_KEY</code> to a <code>.env.local</code> file
+            <p className="text-sm text-ink-soft mt-2 leading-relaxed">
+              Add <code className="text-primary-soft">VITE_SUPABASE_URL</code> and{' '}
+              <code className="text-primary-soft">VITE_SUPABASE_ANON_KEY</code> to a <code>.env.local</code> file
               in the project root, then restart the dev server. See <code>.env.example</code> and{' '}
               <code>supabase/schema.sql</code> for setup steps.
             </p>
@@ -276,8 +285,8 @@ export default function App() {
     return (
       <GlassWrapper>
         <div className="flex-1 flex flex-col items-center justify-center">
-          <div className="w-12 h-12 border-2 border-quest-accent border-dashed rounded-full animate-spin" />
-          <h3 className="font-serif font-black text-xl text-ink mt-4">Consulting Knavi archives...</h3>
+          <div className="w-12 h-12 border-2 border-primary border-dashed rounded-full animate-spin" />
+          <h3 className="font-serif font-black text-xl text-ink mt-4">Consulting Strail archives...</h3>
         </div>
       </GlassWrapper>
     );
@@ -306,13 +315,13 @@ export default function App() {
     }
 
     return (
-      <GlassWrapper>
+      <GlassWrapper showScenery>
         <div className="flex-1 flex items-center justify-center px-4 py-8 sm:py-12">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className="max-w-4xl w-full bg-white border border-quest-border rounded-[24px] shadow-cozy overflow-hidden flex flex-col md:flex-row"
+            className="max-w-4xl w-full bg-white border border-line rounded-[24px] shadow-cozy overflow-hidden flex flex-col md:flex-row"
           >
             <div className="hidden md:block md:w-[45%] min-h-[520px] shrink-0">
               <BrandHero />
@@ -322,19 +331,19 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setShowLanding(true)}
-                className="flex items-center gap-1.5 text-xs font-sans font-bold text-quest-muted hover:text-ink mb-6 cursor-pointer self-start"
+                className="flex items-center gap-1.5 text-xs font-sans font-bold text-ink-soft hover:text-ink mb-6 cursor-pointer self-start"
               >
-                <ArrowLeft className="w-3.5 h-3.5" /> Back to Knavi
+                <ArrowLeft className="w-3.5 h-3.5" /> Back to Strail
               </button>
 
               <div className="mb-8">
                 <div className="flex items-center gap-2.5">
-                  <div className="inline-flex w-9 h-9 bg-quest-accent/15 items-center justify-center rounded-full text-quest-accent">
+                  <div className="inline-flex w-9 h-9 bg-primary/15 items-center justify-center rounded-full text-primary">
                     <Leaf className="w-5 h-5" />
                   </div>
-                  <h1 className="font-sans font-black text-3xl text-ink tracking-tight">Knavi</h1>
+                  <h1 className="font-sans font-black text-3xl text-ink tracking-tight">Strail</h1>
                 </div>
-                <p className="text-sm text-quest-muted mt-2">Your journey. Your goals. Your way.</p>
+                <p className="text-sm text-ink-soft mt-2">Your journey. Your goals. Your way.</p>
               </div>
 
               {authError && (
@@ -344,40 +353,40 @@ export default function App() {
                 </div>
               )}
               {authInfo && (
-                <div className="mb-6 p-3 bg-quest-moss/10 border border-quest-moss/20 rounded-xl text-quest-moss text-xs flex items-start gap-2">
+                <div className="mb-6 p-3 bg-moss/10 border border-moss/20 rounded-xl text-moss text-xs flex items-start gap-2">
                   <span>{authInfo}</span>
                 </div>
               )}
 
               <form onSubmit={handleAuthSubmit} className="space-y-3.5">
                 {!isAuthModeLogin && (
-                  <div className="flex items-center gap-3 px-4 py-3.5 border border-quest-border rounded-xl bg-[#f7fbf8] focus-within:border-quest-accent transition-colors">
-                    <UserRound className="w-4.5 h-4.5 text-quest-muted shrink-0" />
+                  <div className="flex items-center gap-3 px-4 py-3.5 border border-line rounded-xl bg-[#f7fbf8] focus-within:border-primary transition-colors">
+                    <UserRound className="w-4.5 h-4.5 text-ink-soft shrink-0" />
                     <input
                       type="text"
                       required
                       value={authName}
                       onChange={(e) => setAuthName(e.target.value)}
                       placeholder="Your name"
-                      className="w-full bg-transparent text-ink placeholder:text-quest-muted focus:outline-none text-sm"
+                      className="w-full bg-transparent text-ink placeholder:text-ink-soft focus:outline-none text-sm"
                     />
                   </div>
                 )}
 
-                <div className="flex items-center gap-3 px-4 py-3.5 border border-quest-border rounded-xl bg-[#f7fbf8] focus-within:border-quest-accent transition-colors">
-                  <Mail className="w-4.5 h-4.5 text-quest-muted shrink-0" />
+                <div className="flex items-center gap-3 px-4 py-3.5 border border-line rounded-xl bg-[#f7fbf8] focus-within:border-primary transition-colors">
+                  <Mail className="w-4.5 h-4.5 text-ink-soft shrink-0" />
                   <input
                     type="email"
                     required
                     value={authEmail}
                     onChange={(e) => setAuthEmail(e.target.value)}
                     placeholder="Email"
-                    className="w-full bg-transparent text-ink placeholder:text-quest-muted focus:outline-none text-sm"
+                    className="w-full bg-transparent text-ink placeholder:text-ink-soft focus:outline-none text-sm"
                   />
                 </div>
 
-                <div className="flex items-center gap-3 px-4 py-3.5 border border-quest-border rounded-xl bg-[#f7fbf8] focus-within:border-quest-accent transition-colors">
-                  <Lock className="w-4.5 h-4.5 text-quest-muted shrink-0" />
+                <div className="flex items-center gap-3 px-4 py-3.5 border border-line rounded-xl bg-[#f7fbf8] focus-within:border-primary transition-colors">
+                  <Lock className="w-4.5 h-4.5 text-ink-soft shrink-0" />
                   <input
                     type="password"
                     required
@@ -385,7 +394,7 @@ export default function App() {
                     value={authPassword}
                     onChange={(e) => setAuthPassword(e.target.value)}
                     placeholder="Password"
-                    className="w-full bg-transparent text-ink placeholder:text-quest-muted focus:outline-none text-sm"
+                    className="w-full bg-transparent text-ink placeholder:text-ink-soft focus:outline-none text-sm"
                   />
                 </div>
 
@@ -393,7 +402,7 @@ export default function App() {
                   type="submit"
                   disabled={isAuthSubmitting}
                   className={`w-full py-3.5 text-white shadow-cozy rounded-xl text-sm font-bold cursor-pointer transition-all ${
-                    isAuthSubmitting ? 'bg-quest-accent/70 cursor-not-allowed' : 'bg-quest-accent hover:opacity-90'
+                    isAuthSubmitting ? 'bg-primary/70 cursor-not-allowed' : 'bg-primary hover:opacity-90'
                   }`}
                 >
                   {isAuthSubmitting ? 'Please wait...' : isAuthModeLogin ? 'Sign In' : 'Create Account'}
@@ -401,26 +410,26 @@ export default function App() {
               </form>
 
               <div className="mt-5 flex items-center gap-3">
-                <div className="h-px flex-1 bg-quest-border" />
-                <span className="text-[11px] font-sans text-quest-muted">or</span>
-                <div className="h-px flex-1 bg-quest-border" />
+                <div className="h-px flex-1 bg-line" />
+                <span className="text-[11px] font-sans text-ink-soft">or</span>
+                <div className="h-px flex-1 bg-line" />
               </div>
 
               <button
                 type="button"
                 onClick={handleGuestEntry}
                 disabled={isGuestSubmitting}
-                className={`mt-5 w-full py-3 border border-quest-border rounded-xl text-sm font-bold cursor-pointer transition-all ${
-                  isGuestSubmitting ? 'text-quest-muted cursor-not-allowed' : 'text-ink hover:bg-black/5'
+                className={`mt-5 w-full py-3 border border-line rounded-xl text-sm font-bold cursor-pointer transition-all ${
+                  isGuestSubmitting ? 'text-ink-soft cursor-not-allowed' : 'text-ink hover:bg-black/5'
                 }`}
               >
                 {isGuestSubmitting ? 'Entering...' : 'Enter as Guest'}
               </button>
-              <p className="text-[11px] text-quest-muted text-center mt-2">
+              <p className="text-[11px] text-ink-soft text-center mt-2">
                 Browse Public Journeys without an account. Nothing you do as a guest is saved.
               </p>
 
-              <p className="text-center mt-6 text-sm text-quest-muted">
+              <p className="text-center mt-6 text-sm text-ink-soft">
                 {isAuthModeLogin ? "Don't have an account? " : 'Already have an account? '}
                 <button
                   type="button"
@@ -429,7 +438,7 @@ export default function App() {
                     setAuthError(null);
                     setAuthInfo(null);
                   }}
-                  className="font-bold text-quest-accent hover:underline cursor-pointer"
+                  className="font-bold text-primary hover:underline cursor-pointer"
                 >
                   {isAuthModeLogin ? 'Sign up' : 'Sign in'}
                 </button>
@@ -444,10 +453,10 @@ export default function App() {
   if (user && user.isGuest) {
     return (
       <GlassWrapper>
-        <header className="border-b border-quest-border bg-paper backdrop-blur-md py-4 px-6 sticky top-0 z-40">
+        <header className="border-b border-line bg-surface backdrop-blur-md py-4 px-6 sticky top-0 z-40">
           <div className="max-w-6xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-quest-accent/20 border border-quest-accent/40 text-quest-accent flex items-center justify-center font-serif font-black text-sm select-none">
+              <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 text-primary flex items-center justify-center font-serif font-black text-sm select-none">
                 G
               </div>
               <strong className="font-serif font-black text-xl tracking-tight text-ink">Guest Mode</strong>
@@ -456,7 +465,7 @@ export default function App() {
               <SoundToggle />
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-1.5 text-xs text-quest-muted hover:text-quest-accent font-bold cursor-pointer transition-colors"
+                className="flex items-center gap-1.5 text-xs text-ink-soft hover:text-primary font-bold cursor-pointer transition-colors"
               >
                 <LogOut className="w-3.5 h-3.5" /> Exit
               </button>
@@ -481,7 +490,7 @@ export default function App() {
     return (
       <GlassWrapper>
         <div className="flex-1 flex flex-col items-center justify-center">
-          <div className="w-12 h-12 border-2 border-quest-accent border-dashed rounded-full animate-spin" />
+          <div className="w-12 h-12 border-2 border-primary border-dashed rounded-full animate-spin" />
           <h3 className="font-serif font-black text-xl text-ink mt-4">Drafting active trails...</h3>
           {syncError && <p className="text-rose-700 text-xs mt-3 max-w-sm text-center">{syncError}</p>}
         </div>
@@ -502,17 +511,17 @@ export default function App() {
   if (user && onboardingFinished && !hasPlan && currentView === 'setup') {
     return (
       <GlassWrapper>
-        <header className="border-b border-quest-border bg-paper backdrop-blur-md py-4 px-6 sticky top-0 z-40">
+        <header className="border-b border-line bg-surface backdrop-blur-md py-4 px-6 sticky top-0 z-40">
           <div className="max-w-6xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-quest-accent text-white flex items-center justify-center font-serif font-black text-sm select-none">
+              <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-serif font-black text-sm select-none">
                 {user?.name ? user.name.trim()[0].toUpperCase() : 'U'}
               </div>
               <strong className="font-serif font-black text-xl tracking-tight text-ink">{user?.name || 'User'}</strong>
             </div>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-1.5 text-xs text-quest-muted hover:text-quest-accent font-bold cursor-pointer transition-colors"
+              className="flex items-center gap-1.5 text-xs text-ink-soft hover:text-primary font-bold cursor-pointer transition-colors"
             >
               <LogOut className="w-3.5 h-3.5" /> Log Out
             </button>
@@ -527,10 +536,10 @@ export default function App() {
 
   return (
     <GlassWrapper>
-      <header className="border-b border-quest-border bg-paper backdrop-blur-md py-3 sm:py-4 px-4 sm:px-6 sticky top-0 z-40">
+      <header className="border-b border-line bg-surface backdrop-blur-md py-3 sm:py-4 px-4 sm:px-6 sticky top-0 z-40">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 cursor-pointer min-w-0" onClick={() => setCurrentView('journey')}>
-            <div className="w-8 h-8 rounded-full bg-quest-accent text-white flex items-center justify-center font-serif font-black text-sm select-none shrink-0">
+            <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-serif font-black text-sm select-none shrink-0">
               {user?.name ? user.name.trim()[0].toUpperCase() : 'U'}
             </div>
             <strong className="font-serif font-black text-lg sm:text-xl tracking-tight text-ink truncate max-w-[110px] sm:max-w-none">
@@ -542,7 +551,7 @@ export default function App() {
             <button
               onClick={() => setCurrentView('journey')}
               className={`px-4 py-1.5 rounded-lg font-extrabold text-xs cursor-pointer transition-colors ${
-                currentView === 'journey' ? 'bg-quest-accent text-white' : 'text-quest-muted hover:text-ink'
+                currentView === 'journey' ? 'bg-primary text-white' : 'text-ink-soft hover:text-ink'
               }`}
             >
               Daily Trail
@@ -550,7 +559,7 @@ export default function App() {
             <button
               onClick={() => setCurrentView('dashboard')}
               className={`px-4 py-1.5 rounded-lg font-extrabold text-xs cursor-pointer transition-colors ${
-                currentView === 'dashboard' ? 'bg-quest-accent text-white' : 'text-quest-muted hover:text-ink'
+                currentView === 'dashboard' ? 'bg-primary text-white' : 'text-ink-soft hover:text-ink'
               }`}
             >
               Standings
@@ -563,29 +572,29 @@ export default function App() {
               onClick={() => setCurrentView('public')}
               className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-extrabold text-xs cursor-pointer transition-colors border ${
                 currentView === 'public'
-                  ? 'bg-quest-accent text-white border-quest-accent'
-                  : 'text-quest-muted hover:text-ink border-quest-border'
+                  ? 'bg-primary text-white border-primary'
+                  : 'text-ink-soft hover:text-ink border-line'
               }`}
               title="Browse journeys other students have shared"
             >
               <Globe2 className="w-3.5 h-3.5" /> <span className="hidden md:inline">Public Journeys</span>
             </button>
 
-            <div className="flex items-center gap-1 bg-black/5 border border-quest-border px-2.5 py-1 rounded-full text-xs select-none">
-              <Flame className="w-4 h-4 text-quest-accent fill-quest-accent" />
+            <div className="flex items-center gap-1 bg-black/5 border border-line px-2.5 py-1 rounded-full text-xs select-none">
+              <Flame className="w-4 h-4 text-primary fill-primary" />
               <strong className="font-mono text-ink">{streak.streak_count}d</strong>
             </div>
             <SoundToggle />
             <button
               onClick={() => setShowChangePassword(true)}
-              className="flex items-center justify-center text-quest-muted hover:text-ink transition-colors cursor-pointer"
+              className="flex items-center justify-center text-ink-soft hover:text-ink transition-colors cursor-pointer"
               title="Change password"
             >
               <KeyRound className="w-4 h-4" />
             </button>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-1.5 text-xs text-quest-muted hover:text-quest-accent font-bold cursor-pointer transition-colors"
+              className="flex items-center gap-1.5 text-xs text-ink-soft hover:text-primary font-bold cursor-pointer transition-colors"
               title="Sign out"
             >
               <LogOut className="w-4 h-4" /> <span className="hidden md:inline">Exit</span>
@@ -598,12 +607,12 @@ export default function App() {
         <ChangePasswordModal email={user.email} onClose={() => setShowChangePassword(false)} />
       )}
 
-      <div className="block sm:hidden fixed bottom-0 left-0 right-0 border-t border-quest-border bg-paper backdrop-blur-md py-3 px-4 z-40">
+      <div className="block sm:hidden fixed bottom-0 left-0 right-0 border-t border-line bg-surface backdrop-blur-md py-3 px-4 z-40">
         <div className="flex items-center justify-around">
           <button
             onClick={() => setCurrentView('journey')}
             className={`font-bold text-xs flex flex-col items-center gap-1 cursor-pointer ${
-              currentView === 'journey' ? 'text-quest-accent' : 'text-quest-muted'
+              currentView === 'journey' ? 'text-primary' : 'text-ink-soft'
             }`}
           >
             <Compass className="w-4 h-4" /> Daily Trail
@@ -611,7 +620,7 @@ export default function App() {
           <button
             onClick={() => setCurrentView('dashboard')}
             className={`font-bold text-xs flex flex-col items-center gap-1 cursor-pointer ${
-              currentView === 'dashboard' ? 'text-quest-accent' : 'text-quest-muted'
+              currentView === 'dashboard' ? 'text-primary' : 'text-ink-soft'
             }`}
           >
             <Smile className="w-4 h-4" /> Standings
@@ -619,7 +628,7 @@ export default function App() {
           <button
             onClick={() => setCurrentView('public')}
             className={`font-bold text-xs flex flex-col items-center gap-1 cursor-pointer ${
-              currentView === 'public' ? 'text-quest-accent' : 'text-quest-muted'
+              currentView === 'public' ? 'text-primary' : 'text-ink-soft'
             }`}
           >
             <Globe2 className="w-4 h-4" /> Public

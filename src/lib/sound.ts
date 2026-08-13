@@ -1,4 +1,4 @@
-// Lightweight synthesized sound effects for Knavi — no audio files to fetch
+// Lightweight synthesized sound effects for Strail — no audio files to fetch
 // or host, everything below is generated with the Web Audio API. Kept as a
 // plain singleton (not React state) since sound is fire-and-forget; any
 // component that needs to reflect the on/off state locally reads
@@ -13,7 +13,7 @@ type ToneOptions = {
   gain?: number;
 };
 
-const STORAGE_KEY = 'knavi_sound_enabled';
+const STORAGE_KEY = 'strail_sound_enabled';
 
 class SoundManager {
   private ctx: AudioContext | null = null;

@@ -69,7 +69,7 @@ export default function ChangePasswordModal({ email, onClose }: ChangePasswordMo
       onClick={onClose}
     >
       <motion.div
-        className="bg-white border border-quest-border rounded-2xl shadow-cozy max-w-sm w-full p-6"
+        className="bg-white border border-line rounded-2xl shadow-cozy max-w-sm w-full p-6"
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', damping: 26, stiffness: 300 }}
@@ -77,7 +77,7 @@ export default function ChangePasswordModal({ email, onClose }: ChangePasswordMo
       >
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-full bg-quest-accent/15 flex items-center justify-center text-quest-accent shrink-0">
+            <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center text-primary shrink-0">
               <KeyRound className="w-4.5 h-4.5" />
             </div>
             <h3 className="font-serif font-black text-lg text-ink leading-tight">Change Password</h3>
@@ -87,7 +87,7 @@ export default function ChangePasswordModal({ email, onClose }: ChangePasswordMo
             data-sound="none"
             onClick={onClose}
             aria-label="Close"
-            className="text-quest-muted hover:text-ink transition-colors cursor-pointer p-1"
+            className="text-ink-soft hover:text-ink transition-colors cursor-pointer p-1"
           >
             <X className="w-5 h-5" />
           </button>
@@ -95,14 +95,14 @@ export default function ChangePasswordModal({ email, onClose }: ChangePasswordMo
 
         {success ? (
           <>
-            <div className="p-3 bg-quest-moss/10 border border-quest-moss/20 rounded-xl text-quest-moss text-sm">
+            <div className="p-3 bg-moss/10 border border-moss/20 rounded-xl text-moss text-sm">
               Your password has been updated.
             </div>
             <button
               type="button"
               data-sound="none"
               onClick={onClose}
-              className="w-full mt-4 py-3 bg-quest-accent text-white font-sans font-bold rounded-xl shadow-active hover:opacity-90 transition-opacity cursor-pointer text-sm"
+              className="w-full mt-4 py-3 bg-primary text-white font-sans font-bold rounded-xl shadow-active hover:opacity-90 transition-opacity cursor-pointer text-sm"
             >
               Done
             </button>
@@ -117,20 +117,20 @@ export default function ChangePasswordModal({ email, onClose }: ChangePasswordMo
             )}
 
             <form onSubmit={handleSubmit} className="space-y-3">
-              <div className="flex items-center gap-3 px-4 py-3 border border-quest-border rounded-xl bg-[#f7fbf8] focus-within:border-quest-accent transition-colors">
-                <Lock className="w-4 h-4 text-quest-muted shrink-0" />
+              <div className="flex items-center gap-3 px-4 py-3 border border-line rounded-xl bg-[#f7fbf8] focus-within:border-primary transition-colors">
+                <Lock className="w-4 h-4 text-ink-soft shrink-0" />
                 <input
                   type="password"
                   required
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   placeholder="Current password"
-                  className="w-full bg-transparent text-ink placeholder:text-quest-muted focus:outline-none text-sm"
+                  className="w-full bg-transparent text-ink placeholder:text-ink-soft focus:outline-none text-sm"
                 />
               </div>
 
-              <div className="flex items-center gap-3 px-4 py-3 border border-quest-border rounded-xl bg-[#f7fbf8] focus-within:border-quest-accent transition-colors">
-                <Lock className="w-4 h-4 text-quest-muted shrink-0" />
+              <div className="flex items-center gap-3 px-4 py-3 border border-line rounded-xl bg-[#f7fbf8] focus-within:border-primary transition-colors">
+                <Lock className="w-4 h-4 text-ink-soft shrink-0" />
                 <input
                   type="password"
                   required
@@ -138,12 +138,12 @@ export default function ChangePasswordModal({ email, onClose }: ChangePasswordMo
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="New password"
-                  className="w-full bg-transparent text-ink placeholder:text-quest-muted focus:outline-none text-sm"
+                  className="w-full bg-transparent text-ink placeholder:text-ink-soft focus:outline-none text-sm"
                 />
               </div>
 
-              <div className="flex items-center gap-3 px-4 py-3 border border-quest-border rounded-xl bg-[#f7fbf8] focus-within:border-quest-accent transition-colors">
-                <Lock className="w-4 h-4 text-quest-muted shrink-0" />
+              <div className="flex items-center gap-3 px-4 py-3 border border-line rounded-xl bg-[#f7fbf8] focus-within:border-primary transition-colors">
+                <Lock className="w-4 h-4 text-ink-soft shrink-0" />
                 <input
                   type="password"
                   required
@@ -151,7 +151,7 @@ export default function ChangePasswordModal({ email, onClose }: ChangePasswordMo
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Confirm new password"
-                  className="w-full bg-transparent text-ink placeholder:text-quest-muted focus:outline-none text-sm"
+                  className="w-full bg-transparent text-ink placeholder:text-ink-soft focus:outline-none text-sm"
                 />
               </div>
 
@@ -160,7 +160,7 @@ export default function ChangePasswordModal({ email, onClose }: ChangePasswordMo
                 data-sound="none"
                 disabled={isSubmitting}
                 className={`w-full py-3 text-white font-sans font-bold rounded-xl shadow-active transition-opacity cursor-pointer text-sm ${
-                  isSubmitting ? 'bg-quest-accent/70 cursor-not-allowed' : 'bg-quest-accent hover:opacity-90'
+                  isSubmitting ? 'bg-primary/70 cursor-not-allowed' : 'bg-primary hover:opacity-90'
                 }`}
               >
                 {isSubmitting ? 'Updating...' : 'Update Password'}

@@ -60,7 +60,7 @@ export default function Mascot({ levels, streakCount }: MascotProps) {
       state: 'idle',
       emoji: '🕯️',
       text: 'Basecamp is quiet. Complete a step to set today in motion.',
-      tint: 'from-black/5 to-black/0 text-quest-muted',
+      tint: 'from-black/5 to-black/0 text-ink-soft',
       ring: 'ring-black/10',
     };
   };
@@ -74,7 +74,7 @@ export default function Mascot({ levels, streakCount }: MascotProps) {
         initial={{ opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: 'easeOut' }}
-        className={`flex items-start gap-4 p-4 rounded-2xl bg-gradient-to-br ${current.tint} ring-1 ${current.ring} bg-paper backdrop-blur-md shadow-cozy`}
+        className={`flex items-start gap-4 p-4 rounded-2xl bg-gradient-to-br ${current.tint} ring-1 ${current.ring} bg-surface backdrop-blur-md shadow-cozy`}
       >
         <motion.div
           className="text-3xl select-none"
@@ -86,7 +86,7 @@ export default function Mascot({ levels, streakCount }: MascotProps) {
         <div className="min-w-0">
           <h4 className="font-serif font-semibold text-base text-ink flex items-center gap-2">
             Trail Report
-            <span className="text-[10px] font-mono uppercase tracking-widest text-quest-muted">
+            <span className="text-[10px] font-mono uppercase tracking-widest text-ink-soft">
               {current.state}
             </span>
           </h4>

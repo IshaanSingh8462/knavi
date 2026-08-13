@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, useScroll, useTransform } from 'motion/react';
-import { ArrowRight, Lock, Check, Compass, PenLine, CheckCircle2, Users, Instagram } from 'lucide-react';
+import { ArrowRight, Lock, Check, Compass, PenLine, CheckCircle2, Instagram } from 'lucide-react';
 import Logo from './Logo';
 import Trail from './Trail';
 import NodeLegend from './NodeLegend';
+import BackgroundScene from './BackgroundScene';
 import { Level } from '../types/index';
 
 interface LandingPageProps {
-  onGetStarted: () => void; // opens signup mode on the auth card
-  onSignIn: () => void;     // opens login mode on the auth card
-  onGuest: () => void;      // triggers guest entry
+  onSignIn: () => void;          // opens login mode on the auth card
+  onSignUp: () => void;          // opens signup mode on the auth card
+  onGuest: () => void;           // triggers guest entry
+  isGuestSubmitting?: boolean;   // reflects App.tsx's guest-auth in-flight state
 }
 
 const SECTIONS = [
@@ -29,45 +31,6 @@ const DEMO_LEVELS: Level[] = [
   { id: 'demo-4', task_id: null, user_id: '', title: 'Write Introduction', description: '', estimated_minutes: 25, branch: 'custom', branch_order: 3, status: 'locked', skipped: false, completed_at: null, depth: 0, parent_level_id: null },
   { id: 'demo-5', task_id: null, user_id: '', title: 'Draft & Submit', description: '', estimated_minutes: 25, branch: 'custom', branch_order: 4, status: 'locked', skipped: false, completed_at: null, depth: 0, parent_level_id: null },
 ];
-
-function BackgroundScene() {
-  return (
-    <svg
-      viewBox="0 0 1440 2400"
-      preserveAspectRatio="xMidYMin slice"
-      className="w-full h-full"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <rect width="1440" height="2400" fill="#F2FAF3" />
-      <path d="M0 260 Q 220 190 460 250 T 940 240 T 1440 260 V 420 H 0 Z" fill="#E7F5E9" />
-      <path d="M0 360 Q 260 300 520 350 T 1000 340 T 1440 360 V 480 H 0 Z" fill="#DCEFDF" />
-      <g fill="#FFFFFF" opacity="0.85">
-        <ellipse cx="180" cy="140" rx="52" ry="22" />
-        <ellipse cx="220" cy="130" rx="38" ry="18" />
-        <ellipse cx="1220" cy="90" rx="58" ry="24" />
-        <ellipse cx="760" cy="60" rx="44" ry="18" />
-      </g>
-      <g opacity="0.5">
-        {[[120, 420], [1310, 450], [60, 1000], [1370, 1050], [180, 1650], [1290, 1700]].map(([x, y], i) => (
-          <g key={i} transform={`translate(${x} ${y})`}>
-            <rect x="-4" y="18" width="8" height="24" rx="3" fill="#8B5E34" />
-            <polygon points="0,-30 20,20 -20,20" fill="#3FA35C" />
-          </g>
-        ))}
-      </g>
-      <path
-        d="M -60 300 C 300 500, 200 700, 600 850 S 1200 1100, 900 1400 S 200 1700, 500 2000 S 1300 2250, 1100 2400"
-        fill="none"
-        stroke="#DFC98A"
-        strokeWidth="6"
-        strokeDasharray="2 22"
-        strokeLinecap="round"
-        opacity="0.7"
-      />
-    </svg>
-  );
-}
 
 // The side nav uses the app's own node-state visual language (locked /
 // active / done) to represent scroll progress through the page — sections
@@ -127,25 +90,10 @@ function SideTrailNav({ activeIndex, onJump }: { activeIndex: number; onJump: (i
   );
 }
 
-export default function LandingPage({ onGetStarted, onSignIn, onGuest }: LandingPageProps) {
+export default function LandingPage({ onSignIn, onSignUp, onGuest, isGuestSubmitting }: LandingPageProps) {
   const pageRef = useRef<HTMLDivElement>(null);
   const sectionElsRef = useRef<Record<string, HTMLElement | null>>({});
   const [activeIndex, setActiveIndex] = useState(0);
-  const [bgHeight, setBgHeight] = useState(0);
-
-  useEffect(() => {
-    const el = pageRef.current;
-    if (!el) return;
-    const update = () => setBgHeight(el.scrollHeight);
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    window.addEventListener('resize', update);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener('resize', update);
-    };
-  }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -180,8 +128,8 @@ export default function LandingPage({ onGetStarted, onSignIn, onGuest }: Landing
     <div ref={pageRef} className="relative bg-void text-ink overflow-x-hidden">
       <motion.div
         aria-hidden="true"
-        className="absolute top-0 left-0 w-full pointer-events-none z-0"
-        style={{ height: bgHeight || '100%', y: bgY }}
+        className="absolute inset-0 w-full pointer-events-none z-0"
+        style={{ y: bgY }}
       >
         <BackgroundScene />
       </motion.div>
@@ -213,7 +161,7 @@ export default function LandingPage({ onGetStarted, onSignIn, onGuest }: Landing
 
           <button
             type="button"
-            onClick={onGetStarted}
+            onClick={onSignUp}
             className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary text-white font-bold text-sm shadow-active hover:opacity-90 hover:-translate-y-0.5 transition-all cursor-pointer"
           >
             Get Started <ArrowRight className="w-4 h-4" />
@@ -243,7 +191,7 @@ export default function LandingPage({ onGetStarted, onSignIn, onGuest }: Landing
           <div className="flex flex-wrap gap-3 justify-center items-center mt-7">
             <button
               type="button"
-              onClick={onGetStarted}
+              onClick={onSignUp}
               className="flex items-center gap-2 px-6 py-3 rounded-full bg-primary text-white font-bold text-sm shadow-active hover:opacity-90 hover:-translate-y-0.5 transition-all cursor-pointer"
             >
               Create free account <ArrowRight className="w-4 h-4" />
@@ -258,9 +206,12 @@ export default function LandingPage({ onGetStarted, onSignIn, onGuest }: Landing
             <button
               type="button"
               onClick={onGuest}
-              className="px-4 py-3 text-ink-soft font-bold text-sm underline hover:text-primary-dk transition-colors cursor-pointer"
+              disabled={isGuestSubmitting}
+              className={`px-4 py-3 font-bold text-sm underline transition-colors ${
+                isGuestSubmitting ? 'text-ink-soft/60 cursor-not-allowed' : 'text-ink-soft hover:text-primary-dk cursor-pointer'
+              }`}
             >
-              Browse as a guest
+              {isGuestSubmitting ? 'Entering...' : 'Browse as a guest'}
             </button>
           </div>
 
@@ -373,7 +324,7 @@ export default function LandingPage({ onGetStarted, onSignIn, onGuest }: Landing
             </p>
             <button
               type="button"
-              onClick={onGetStarted}
+              onClick={onSignUp}
               className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-primary text-white font-bold text-sm shadow-active hover:opacity-90 hover:-translate-y-0.5 transition-all cursor-pointer"
             >
               Start Your Journey <ArrowRight className="w-4 h-4" />

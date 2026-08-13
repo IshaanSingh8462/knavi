@@ -24,7 +24,6 @@ const SPACING_Y = 128;
 const TOP_PADDING = 70;
 const BOTTOM_PADDING = 90;
 const NODE_SIZE = 64;
-const LABEL_HEIGHT = 28;
 
 const EMOJI_SET = ['📘', '🎯', '🧠', '✏️', '🔍', '💡', '🗣️', '📐', '🧩', '⚡'];
 

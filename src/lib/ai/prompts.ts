@@ -35,7 +35,7 @@ export function buildPlanPrompt(input: PlanInput): string {
   ).join('\n');
 
   return `You are a high-fidelity scheduling AI assisting high school students.
-You are building a personalized "Knavi" weekly planner starting on '${input.weekStartDate}'.
+You are building a personalized "Strail" weekly planner starting on '${input.weekStartDate}'.
 
 The main goal for the week is: "${input.goal}"
 

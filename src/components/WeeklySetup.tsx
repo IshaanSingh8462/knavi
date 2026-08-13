@@ -139,21 +139,21 @@ export default function WeeklySetup({ user, onPlanGenerated }: WeeklySetupProps)
         className="max-w-md mx-auto py-20 px-4 text-center"
       >
         <div className="relative inline-block mb-8">
-          <div className="w-24 h-24 rounded-full bg-quest-accent/10 flex items-center justify-center animate-pulse duration-1000">
+          <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center animate-pulse duration-1000">
             <span className="text-5xl select-none animate-spin" style={{ animationDuration: '8s' }}>🧭</span>
           </div>
-          <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-quest-accent text-white font-bold text-xs flex items-center justify-center animate-bounce">
+          <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-primary text-white font-bold text-xs flex items-center justify-center animate-bounce">
             ✨
           </div>
         </div>
 
-        <h2 className="font-serif font-black text-2xl text-ink">Knavi is building your trail...</h2>
+        <h2 className="font-serif font-black text-2xl text-ink">Strail is building your trail...</h2>
 
-        <div className="mt-4 p-4 bg-black/5 border border-quest-border rounded-xl shadow-cozy min-h-[70px] flex items-center justify-center">
+        <div className="mt-4 p-4 bg-black/5 border border-line rounded-xl shadow-cozy min-h-[70px] flex items-center justify-center">
           <p className="text-sm text-ink italic animate-pulse">"{loadMessage}"</p>
         </div>
 
-        <p className="text-xs text-quest-muted mt-4">
+        <p className="text-xs text-ink-soft mt-4">
           Please don't close this window — we're generating your validated trail.
         </p>
       </motion.div>
@@ -169,20 +169,20 @@ export default function WeeklySetup({ user, onPlanGenerated }: WeeklySetupProps)
       className="space-y-8 max-w-3xl mx-auto py-8 px-4 text-left"
     >
       <div>
-        <span className="text-xs font-sans font-semibold text-quest-accent bg-quest-accent/10 px-2.5 py-0.5 rounded-full select-none">
+        <span className="text-xs font-sans font-semibold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full select-none">
           {displayName ? `${displayName}'s Sunday Weekly Setup` : 'Sunday Weekly Setup'}
         </span>
         <h1 className="font-serif font-black text-3xl sm:text-4xl text-ink mt-2">
           {displayName ? `Hey ${displayName}, let's map this week's goals` : "Map this week's goals"}
         </h1>
-        <p className="font-sans text-sm text-quest-muted mt-1">
-          Input your homework, prep work, and personal targets. Knavi will weave them into a trail.
+        <p className="font-sans text-sm text-ink-soft mt-1">
+          Input your homework, prep work, and personal targets. Strail will weave them into a trail.
         </p>
       </div>
 
       {errorMsg && (
         <div className="bg-rose-500/10 border border-rose-500/20 text-rose-700 p-4 rounded-xl flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-quest-accent flex-shrink-0 mt-0.5" />
+          <AlertCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
           <div>
             <h4 className="font-serif font-bold text-sm">Failed to generate Weekly Path</h4>
             <p className="font-sans text-xs text-rose-700 mt-1">{errorMsg}</p>
@@ -190,17 +190,17 @@ export default function WeeklySetup({ user, onPlanGenerated }: WeeklySetupProps)
         </div>
       )}
 
-      <div className="bg-paper p-6 rounded-xl border border-quest-border shadow-cozy">
-        <div className="flex items-center justify-between border-b border-quest-border pb-4 mb-4">
+      <div className="bg-surface p-6 rounded-xl border border-line shadow-cozy">
+        <div className="flex items-center justify-between border-b border-line pb-4 mb-4">
           <h3 className="font-serif font-bold text-xl text-ink flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-quest-accent" /> Section 1: Major Academic Tasks
+            <BookOpen className="w-5 h-5 text-primary" /> Section 1: Major Academic Tasks
           </h3>
-          <span className="text-xs font-sans text-quest-muted">Min 1 task required</span>
+          <span className="text-xs font-sans text-ink-soft">Min 1 task required</span>
         </div>
 
         <div className="space-y-4">
           {tasks.map((task, index) => (
-            <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center border-b border-quest-border pb-4 md:pb-0 md:border-b-0">
+            <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center border-b border-line pb-4 md:pb-0 md:border-b-0">
               <div className="md:col-span-8 flex flex-col">
                 <input
                   type="text"
@@ -208,7 +208,7 @@ export default function WeeklySetup({ user, onPlanGenerated }: WeeklySetupProps)
                   placeholder="e.g. Study for AP Calculus exam, Write thesis draft"
                   value={task.title}
                   onChange={(e) => handleUpdateTask(index, 'title', e.target.value)}
-                  className="p-2.5 border border-quest-border rounded-lg font-sans text-ink bg-[#f7fbf8]/50 focus:outline-none focus:border-quest-accent text-sm"
+                  className="p-2.5 border border-line rounded-lg font-sans text-ink bg-[#f7fbf8]/50 focus:outline-none focus:border-primary text-sm"
                 />
               </div>
 
@@ -216,7 +216,7 @@ export default function WeeklySetup({ user, onPlanGenerated }: WeeklySetupProps)
                 <select
                   value={task.subject}
                   onChange={(e) => handleUpdateTask(index, 'subject', e.target.value)}
-                  className="w-full p-2.5 border border-quest-border rounded-lg font-sans text-sm text-ink bg-[#f7fbf8]/50 focus:outline-none focus:border-quest-accent"
+                  className="w-full p-2.5 border border-line rounded-lg font-sans text-sm text-ink bg-[#f7fbf8]/50 focus:outline-none focus:border-primary"
                 >
                   <option value="Math">Math</option>
                   <option value="English">English</option>
@@ -232,7 +232,7 @@ export default function WeeklySetup({ user, onPlanGenerated }: WeeklySetupProps)
                   type="button"
                   disabled={tasks.length === 1}
                   onClick={() => handleDeleteTask(index)}
-                  className="p-2 text-quest-muted hover:text-quest-accent disabled:opacity-30 disabled:hover:text-quest-muted rounded transition-colors cursor-pointer"
+                  className="p-2 text-ink-soft hover:text-primary disabled:opacity-30 disabled:hover:text-ink-soft rounded transition-colors cursor-pointer"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -244,21 +244,21 @@ export default function WeeklySetup({ user, onPlanGenerated }: WeeklySetupProps)
         <button
           type="button"
           onClick={handleAddTask}
-          className="mt-4 flex items-center gap-1.5 text-xs font-sans font-bold text-quest-accent border border-quest-accent/20 bg-quest-accent/5 hover:bg-quest-accent/10 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+          className="mt-4 flex items-center gap-1.5 text-xs font-sans font-bold text-primary border border-primary/20 bg-primary/5 hover:bg-primary/10 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5" /> Add Another Task
         </button>
       </div>
 
-      <div className="bg-paper p-6 rounded-xl border border-quest-border shadow-cozy">
-        <div className="flex items-center justify-between border-b border-quest-border pb-4 mb-4">
+      <div className="bg-surface p-6 rounded-xl border border-line shadow-cozy">
+        <div className="flex items-center justify-between border-b border-line pb-4 mb-4">
           <h3 className="font-serif font-bold text-xl text-ink flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-quest-accent-soft" /> Section 2: Custom Activity Tracks
+            <Sparkles className="w-5 h-5 text-primary-soft" /> Section 2: Custom Activity Tracks
           </h3>
-          <span className="text-xs font-sans text-quest-muted">Optional tracks</span>
+          <span className="text-xs font-sans text-ink-soft">Optional tracks</span>
         </div>
-        <p className="font-sans text-xs text-quest-muted mb-6 leading-relaxed">
-          Enter any independent custom endeavors or specific tasks you want to complete here (e.g. "Build an AI App", "Practice speech draft"). Knavi will dynamically decompose each target into its own mountain trail!
+        <p className="font-sans text-xs text-ink-soft mb-6 leading-relaxed">
+          Enter any independent custom endeavors or specific tasks you want to complete here (e.g. "Build an AI App", "Practice speech draft"). Strail will dynamically decompose each target into its own mountain trail!
         </p>
 
         <div className="space-y-4">
@@ -270,14 +270,14 @@ export default function WeeklySetup({ user, onPlanGenerated }: WeeklySetupProps)
                   placeholder="e.g. Practice violin recital solo, design portfolio wireframes"
                   value={act}
                   onChange={(e) => handleUpdateCustomActivity(index, e.target.value)}
-                  className="w-full p-2.5 border border-quest-border rounded-lg font-sans text-sm text-ink bg-[#f7fbf8]/50 focus:outline-none focus:border-quest-accent"
+                  className="w-full p-2.5 border border-line rounded-lg font-sans text-sm text-ink bg-[#f7fbf8]/50 focus:outline-none focus:border-primary"
                 />
               </div>
               <button
                 type="button"
                 disabled={customActivities.length === 1}
                 onClick={() => handleDeleteCustomActivity(index)}
-                className="p-2.5 text-quest-muted hover:text-quest-accent hover:bg-black/5 disabled:opacity-30 disabled:hover:bg-transparent rounded-lg transition-all cursor-pointer flex-shrink-0"
+                className="p-2.5 text-ink-soft hover:text-primary hover:bg-black/5 disabled:opacity-30 disabled:hover:bg-transparent rounded-lg transition-all cursor-pointer flex-shrink-0"
                 title="Remove Track"
               >
                 <Trash2 className="w-4.5 h-4.5" />
@@ -285,7 +285,7 @@ export default function WeeklySetup({ user, onPlanGenerated }: WeeklySetupProps)
             </div>
           ))}
           {customActivities.length === 0 && (
-            <p className="text-xs text-quest-muted italic py-2">
+            <p className="text-xs text-ink-soft italic py-2">
               No custom tracks added. All tasks will follow the standard Academic trail.
             </p>
           )}
@@ -294,7 +294,7 @@ export default function WeeklySetup({ user, onPlanGenerated }: WeeklySetupProps)
         <button
           type="button"
           onClick={handleAddCustomActivity}
-          className="mt-4 flex items-center gap-1.5 text-xs font-sans font-bold text-quest-accent-soft border border-quest-accent/20 bg-quest-accent/5 hover:bg-quest-accent/10 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+          className="mt-4 flex items-center gap-1.5 text-xs font-sans font-bold text-primary-soft border border-primary/20 bg-primary/5 hover:bg-primary/10 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5" /> Add Custom Activity Track
         </button>
@@ -305,7 +305,7 @@ export default function WeeklySetup({ user, onPlanGenerated }: WeeklySetupProps)
           type="button"
           data-sound="none"
           onClick={handleBuildMyWeek}
-          className="flex items-center gap-2 px-8 py-3.5 bg-quest-accent text-white font-sans font-bold rounded-xl shadow-active border border-quest-accent hover:opacity-90 hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer text-sm"
+          className="flex items-center gap-2 px-8 py-3.5 bg-primary text-white font-sans font-bold rounded-xl shadow-active border border-primary hover:opacity-90 hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer text-sm"
         >
           Build My Week Journey <Sparkles className="w-4 h-4" />
         </button>

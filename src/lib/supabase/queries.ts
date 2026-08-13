@@ -244,17 +244,14 @@ export async function getStreak(): Promise<Streak> {
   } = await supabase.auth.getUser();
   if (!user) throw new Error('Not signed in.');
 
-  const { data, error } = await supabase.from('streaks').select('*').maybeSingle();
+  // get_current_streak() also decays a broken streak (last_active_date more
+  // than 1 day ago) to 0 and persists that, server-side, every time it's
+  // called — not just when a node is completed. This is what makes a lost
+  // streak show up immediately on load instead of staying stale until the
+  // next unrelated completion.
+  const { data, error } = await supabase.rpc('get_current_streak');
   if (error) throw error;
-  if (data) return data as Streak;
-
-  const { data: created, error: createError } = await supabase
-    .from('streaks')
-    .insert({ user_id: user.id, streak_count: 0, last_active_date: null, longest_streak: 0 })
-    .select()
-    .single();
-  if (createError) throw createError;
-  return created as Streak;
+  return data as Streak;
 }
 
 export interface CompleteLevelResult {

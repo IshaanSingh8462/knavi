@@ -105,7 +105,7 @@ export default function NodeDetail({
             onClick={onClose}
           />
           <motion.div
-            className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-quest-border rounded-t-[24px] shadow-cozy px-6 pt-5 pb-8 max-w-xl mx-auto max-h-[85vh] overflow-y-auto"
+            className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-line rounded-t-[24px] shadow-cozy px-6 pt-5 pb-8 max-w-xl mx-auto max-h-[85vh] overflow-y-auto"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -115,7 +115,7 @@ export default function NodeDetail({
 
             <div className="flex items-start justify-between gap-3">
               <div>
-                <span className="text-[10px] font-mono tracking-widest uppercase text-quest-accent-soft">
+                <span className="text-[10px] font-mono tracking-widest uppercase text-primary-soft">
                   {isLocked ? 'Locked — preview' : isCompleted ? 'Completed' : 'Active step'}
                 </span>
                 <h4 className="font-serif font-black text-xl text-ink leading-tight mt-0.5">{level.title}</h4>
@@ -123,27 +123,27 @@ export default function NodeDetail({
               <button
                 onClick={onClose}
                 aria-label="Close"
-                className="text-quest-muted hover:text-ink transition-colors cursor-pointer p-1"
+                className="text-ink-soft hover:text-ink transition-colors cursor-pointer p-1"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-sm text-quest-muted leading-relaxed mt-3">{level.description}</p>
+            <p className="text-sm text-ink-soft leading-relaxed mt-3">{level.description}</p>
 
-            <div className="mt-4 p-3 bg-black/5 border border-quest-border rounded-xl flex items-center justify-between">
+            <div className="mt-4 p-3 bg-black/5 border border-line rounded-xl flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-quest-accent" />
+                <Clock className="w-4 h-4 text-primary" />
                 <span className="font-mono font-bold text-lg text-ink">
                   {isActive && timeLeft !== null ? formatTimer(timeLeft) : formatTimer(level.estimated_minutes * 60)}
                 </span>
               </div>
-              <span className="text-[10px] text-quest-muted italic">Time is a guide, not a gate</span>
+              <span className="text-[10px] text-ink-soft italic">Time is a guide, not a gate</span>
             </div>
 
             {/* Resource links */}
             <div className="mt-5">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-quest-muted">Sources</span>
+              <span className="text-[10px] font-mono uppercase tracking-widest text-ink-soft">Sources</span>
               <div className="flex flex-wrap gap-2 mt-2">
                 {buildResourceLinks(level).map((r) => (
                   <a
@@ -151,9 +151,9 @@ export default function NodeDetail({
                     href={r.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-xs font-sans font-bold text-ink border border-quest-border bg-black/5 hover:bg-black/10 px-3 py-1.5 rounded-lg transition-colors"
+                    className="flex items-center gap-1.5 text-xs font-sans font-bold text-ink border border-line bg-black/5 hover:bg-black/10 px-3 py-1.5 rounded-lg transition-colors"
                   >
-                    <r.icon className="w-3.5 h-3.5 text-quest-accent-soft" /> {r.label}
+                    <r.icon className="w-3.5 h-3.5 text-primary-soft" /> {r.label}
                   </a>
                 ))}
               </div>
@@ -165,7 +165,8 @@ export default function NodeDetail({
                 type="button"
                 disabled
                 title="Coming soon"
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-lg text-xs font-sans font-bold border border-dashed border-quest-border text-quest-muted cursor-not-allowed opacity-60"
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-lg text-xs font-sans font-bold border-[1.5px] border-dashed bg-surface shadow-cozy text-ink-soft cursor-not-allowed"
+                style={{ borderColor: 'var(--color-trail)' }}
               >
                 <Sparkles className="w-3.5 h-3.5" /> AI Explanation (coming soon)
               </button>
@@ -175,7 +176,8 @@ export default function NodeDetail({
                   type="button"
                   disabled
                   title="A completed step can't be broken down further"
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-lg text-xs font-sans font-bold border border-dashed border-quest-border text-quest-muted cursor-not-allowed opacity-60"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-lg text-xs font-sans font-bold border-[1.5px] border-dashed bg-surface shadow-cozy text-ink-soft cursor-not-allowed"
+                  style={{ borderColor: 'var(--color-trail)' }}
                 >
                   <Layers className="w-3.5 h-3.5" /> Already completed
                 </button>
@@ -184,7 +186,8 @@ export default function NodeDetail({
                   type="button"
                   disabled
                   title="This step has reached the breakdown limit"
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-lg text-xs font-sans font-bold border border-dashed border-quest-border text-quest-muted cursor-not-allowed opacity-60"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-lg text-xs font-sans font-bold border-[1.5px] border-dashed bg-surface shadow-cozy text-ink-soft cursor-not-allowed"
+                  style={{ borderColor: 'var(--color-trail)' }}
                 >
                   <Layers className="w-3.5 h-3.5" /> Break Down Further
                 </button>
@@ -196,8 +199,8 @@ export default function NodeDetail({
                   disabled={isBreakingDown || alreadyHasChildren}
                   className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-lg text-xs font-sans font-bold transition-colors ${
                     alreadyHasChildren
-                      ? 'border border-quest-border text-quest-muted cursor-default'
-                      : 'bg-quest-accent/15 border border-quest-accent/30 text-quest-accent-soft hover:bg-quest-accent/25 cursor-pointer'
+                      ? 'border border-line text-ink-soft cursor-default'
+                      : 'bg-primary/15 border border-primary/30 text-primary-soft hover:bg-primary/25 cursor-pointer'
                   }`}
                 >
                   <Layers className="w-3.5 h-3.5" />
@@ -211,13 +214,13 @@ export default function NodeDetail({
             </div>
 
             {stopMessage && (
-              <div className="mt-3 p-3 bg-quest-accent/10 border border-quest-accent/25 rounded-lg text-quest-accent-soft text-xs leading-relaxed">
+              <div className="mt-3 p-3 bg-primary/10 border border-primary/25 rounded-lg text-primary-soft text-xs leading-relaxed">
                 {stopMessage}
               </div>
             )}
 
             {isLocked && (
-              <div className="mt-5 p-3 bg-black/5 border border-quest-border rounded-lg text-quest-muted text-xs">
+              <div className="mt-5 p-3 bg-black/5 border border-line rounded-lg text-ink-soft text-xs">
                 Complete the steps before this one to unlock it. You can still read ahead here.
               </div>
             )}
@@ -229,7 +232,7 @@ export default function NodeDetail({
                   data-sound="none"
                   onClick={handleRevert}
                   disabled={isReverting}
-                  className="w-full flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-lg text-xs font-sans font-bold border border-quest-border text-quest-muted hover:text-ink hover:bg-black/5 transition-colors cursor-pointer disabled:opacity-60"
+                  className="w-full flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-lg text-xs font-sans font-bold border border-line text-ink-soft hover:text-ink hover:bg-black/5 transition-colors cursor-pointer disabled:opacity-60"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   {isReverting ? 'Undoing...' : 'Undo Completion'}
@@ -249,7 +252,7 @@ export default function NodeDetail({
                     sound.complete();
                     onComplete(level.id, false);
                   }}
-                  className="flex-1 py-3 font-sans font-bold text-sm bg-quest-accent text-white rounded-xl shadow-active hover:opacity-90 transition-opacity cursor-pointer"
+                  className="flex-1 py-3 font-sans font-bold text-sm bg-primary text-white rounded-xl shadow-active hover:opacity-90 transition-opacity cursor-pointer"
                 >
                   Mark Complete
                 </button>
@@ -261,9 +264,9 @@ export default function NodeDetail({
                     onComplete(level.id, true);
                   }}
                   title="Mark as already known"
-                  className="px-4 py-3 font-sans font-bold text-sm border border-quest-border bg-black/5 hover:bg-black/10 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 text-ink"
+                  className="px-4 py-3 font-sans font-bold text-sm border border-line bg-black/5 hover:bg-black/10 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 text-ink"
                 >
-                  <FastForward className="w-4 h-4 text-quest-accent-soft" /> Skip
+                  <FastForward className="w-4 h-4 text-primary-soft" /> Skip
                 </button>
               </div>
             )}

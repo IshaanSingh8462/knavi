@@ -23,7 +23,7 @@ export default function SoundToggle({ className = '' }: SoundToggleProps) {
       onClick={() => setEnabled(sound.toggle())}
       aria-pressed={enabled}
       title={enabled ? 'Mute sound effects' : 'Unmute sound effects'}
-      className={`flex items-center justify-center text-quest-muted hover:text-ink transition-colors cursor-pointer ${className}`}
+      className={`flex items-center justify-center text-ink-soft hover:text-ink transition-colors cursor-pointer ${className}`}
     >
       {enabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
     </button>

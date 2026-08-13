@@ -1,5 +1,5 @@
 -- ============================================================================
--- Knavi — Supabase schema, Row Level Security policies, and helper functions
+-- Strail — Supabase schema, Row Level Security policies, and helper functions
 -- ============================================================================
 -- Safe to re-run: every statement uses IF NOT EXISTS / OR REPLACE / ADD
 -- COLUMN IF NOT EXISTS, so you can paste this again after edits without
@@ -169,7 +169,7 @@ create trigger on_auth_user_created
 -- complete_level / revert_level_completion
 --
 -- FIX APPLIED: both functions now scope the "find the next node" lookup by
--- task_id for EVERY branch, not just 'custom'. Knavi moved to "one trail
+-- task_id for EVERY branch, not just 'custom'. Strail moved to "one trail
 -- per task" for every branch (academic, light, activity, custom) — every
 -- task gets its own branch_order sequence starting at 0. The original
 -- versions of these functions only added the task_id constraint for the
@@ -336,6 +336,52 @@ $$;
 grant execute on function public.complete_level(uuid, boolean) to authenticated;
 grant execute on function public.check_and_increment_ai_rate_limit(integer) to authenticated;
 grant execute on function public.revert_level_completion(uuid) to authenticated;
+
+-- ============================================================================
+-- get_current_streak
+--
+-- Previously, streak_count was only ever recalculated inside complete_level,
+-- which only runs when a node IS completed. That meant a broken streak (the
+-- user missed a day) kept showing its old, stale count everywhere in the UI
+-- until the next time they completed something — going UP updated live,
+-- going DOWN silently didn't. This function is called every time the app
+-- reads the streak (on load, not just on completion) and, if more than one
+-- day has passed since last_active_date, resets streak_count to 0 and
+-- writes that back immediately, so the decay is visible on the very next
+-- load rather than waiting for an unrelated future action.
+-- ============================================================================
+create or replace function public.get_current_streak()
+returns public.streaks
+language plpgsql
+security invoker
+as $$
+declare
+  v_streak public.streaks%rowtype;
+  v_diff   integer;
+begin
+  select * into v_streak from public.streaks where user_id = auth.uid();
+  if not found then
+    insert into public.streaks (user_id, streak_count, last_active_date, longest_streak)
+    values (auth.uid(), 0, null, 0)
+    returning * into v_streak;
+    return v_streak;
+  end if;
+
+  if v_streak.last_active_date is not null and v_streak.streak_count <> 0 then
+    v_diff := current_date - v_streak.last_active_date;
+    if v_diff > 1 then
+      update public.streaks
+        set streak_count = 0
+        where user_id = auth.uid()
+        returning * into v_streak;
+    end if;
+  end if;
+
+  return v_streak;
+end;
+$$;
+
+grant execute on function public.get_current_streak() to authenticated;
 
 alter default privileges in schema public
   grant select, insert, update, delete on tables to authenticated;

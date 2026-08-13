@@ -69,7 +69,7 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
     setTogglingPublicKey(group.key);
     sound.toggleSwitch();
     try {
-      const authorName = user?.name?.trim() || (user?.email ? user.email.split('@')[0] : 'A Knavi student');
+      const authorName = user?.name?.trim() || (user?.email ? user.email.split('@')[0] : 'A Strail student');
       await setTaskPublic(group.taskId, !group.isPublic, authorName);
       onRefresh();
     } catch (err: any) {
@@ -264,7 +264,7 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="bg-[#ffffff] p-8 rounded-3xl border border-quest-border max-w-md w-full text-center shadow-active"
+              className="bg-[#ffffff] p-8 rounded-3xl border border-line max-w-md w-full text-center shadow-active"
               initial={{ scale: 0.85, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: 'spring', damping: 20, stiffness: 260 }}
@@ -277,21 +277,21 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
                 🏔️
               </motion.span>
               <h2 className="font-serif font-black text-3xl text-ink">Summit Reached</h2>
-              <p className="text-sm text-quest-muted mt-2 leading-relaxed">
+              <p className="text-sm text-ink-soft mt-2 leading-relaxed">
                 Every step on this trail is complete. You guarded your commitments while hitting your targets.
               </p>
-              <div className="my-5 p-4 bg-quest-accent/10 border border-quest-accent/20 rounded-xl flex items-center justify-center gap-3">
-                <Flame className="w-6 h-6 text-quest-accent fill-quest-accent" />
+              <div className="my-5 p-4 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center gap-3">
+                <Flame className="w-6 h-6 text-primary fill-primary" />
                 <div className="text-left">
-                  <span className="font-serif font-bold text-sm text-quest-accent-soft">
+                  <span className="font-serif font-bold text-sm text-primary-soft">
                     Current Streak: {streak.streak_count} Days
                   </span>
-                  <p className="font-mono text-[10px] text-quest-accent-soft/70">RECORD: {streak.longest_streak} DAYS</p>
+                  <p className="font-mono text-[10px] text-primary-soft/70">RECORD: {streak.longest_streak} DAYS</p>
                 </div>
               </div>
               <button
                 onClick={() => setIsCelebrationOpen(false)}
-                className="w-full py-3 bg-quest-accent text-white font-sans font-bold hover:opacity-90 shadow-active rounded-xl cursor-pointer transition-opacity"
+                className="w-full py-3 bg-primary text-white font-sans font-bold hover:opacity-90 shadow-active rounded-xl cursor-pointer transition-opacity"
               >
                 Back to the Trail
               </button>
@@ -305,7 +305,7 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
           type="button"
           onClick={() => scrollToIndex(activeIndex - 1)}
           disabled={activeIndex === 0}
-          className="p-1.5 text-quest-muted hover:text-ink disabled:opacity-30 cursor-pointer"
+          className="p-1.5 text-ink-soft hover:text-ink disabled:opacity-30 cursor-pointer"
           aria-label="Previous trail"
         >
           <ChevronLeft className="w-5 h-5" />
@@ -317,7 +317,7 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
               type="button"
               onClick={() => scrollToIndex(i)}
               className={`px-3.5 py-1.5 rounded-full font-sans font-bold text-xs whitespace-nowrap cursor-pointer transition-colors ${
-                i === activeIndex ? 'bg-quest-accent text-white' : 'text-quest-muted border border-quest-border hover:text-ink'
+                i === activeIndex ? 'bg-primary text-white' : 'text-ink-soft border border-line hover:text-ink'
               }`}
             >
               {g.emoji} {g.label}
@@ -328,7 +328,7 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
           type="button"
           onClick={() => scrollToIndex(activeIndex + 1)}
           disabled={activeIndex >= trailGroups.length - 1}
-          className="p-1.5 text-quest-muted hover:text-ink disabled:opacity-30 cursor-pointer"
+          className="p-1.5 text-ink-soft hover:text-ink disabled:opacity-30 cursor-pointer"
           aria-label="Next trail"
         >
           <ChevronRight className="w-5 h-5" />
@@ -340,7 +340,7 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
           <div key={g.key} className="mountain-slide px-0.5">
             {g.taskId && (
               <div className="flex items-center justify-between mb-2 px-1">
-                <span className="flex items-center gap-1.5 text-xs font-sans font-bold text-quest-muted">
+                <span className="flex items-center gap-1.5 text-xs font-sans font-bold text-ink-soft">
                   <Globe2 className="w-3.5 h-3.5" /> {g.isPublic ? 'Public journey' : 'Private'}
                 </span>
                 <button
@@ -351,7 +351,7 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
                   disabled={togglingPublicKey === g.key}
                   onClick={() => handleTogglePublic(g)}
                   className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer disabled:opacity-50 ${
-                    g.isPublic ? 'bg-quest-accent' : 'bg-black/15'
+                    g.isPublic ? 'bg-primary' : 'bg-black/15'
                   }`}
                 >
                   <span
@@ -369,7 +369,7 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
               <div className="mt-3 flex flex-col items-end gap-1.5 px-1">
                 {confirmDeleteKey === g.key ? (
                   <div className="flex items-center gap-2 flex-wrap justify-end">
-                    <span className="text-xs text-quest-muted">Delete "{g.label}" and all its steps?</span>
+                    <span className="text-xs text-ink-soft">Delete "{g.label}" and all its steps?</span>
                     <button
                       type="button"
                       data-sound="none"
@@ -383,7 +383,7 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
                       type="button"
                       onClick={() => setConfirmDeleteKey(null)}
                       disabled={isDeletingTrail}
-                      className="py-1.5 px-3 text-quest-muted hover:text-ink font-sans font-bold text-xs rounded-lg cursor-pointer border border-quest-border transition-colors disabled:opacity-60"
+                      className="py-1.5 px-3 text-ink-soft hover:text-ink font-sans font-bold text-xs rounded-lg cursor-pointer border border-line transition-colors disabled:opacity-60"
                     >
                       Cancel
                     </button>
@@ -393,7 +393,7 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
                     type="button"
                     data-sound="none"
                     onClick={() => handleDeleteTrail(g)}
-                    className="flex items-center gap-1.5 text-xs font-sans font-bold text-quest-muted hover:text-rose-600 transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 text-xs font-sans font-bold text-ink-soft hover:text-rose-600 transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-3.5 h-3.5" /> Delete Trail
                   </button>
@@ -410,21 +410,21 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
         <Mascot levels={activeGroup ? activeGroup.levels : []} streakCount={streak.streak_count} />
 
-        <div className="bg-paper border border-quest-border rounded-2xl p-4 shadow-cozy flex flex-col justify-center">
+        <div className="bg-surface border border-line rounded-2xl p-4 shadow-cozy flex flex-col justify-center">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-mono uppercase tracking-widest text-quest-muted">Campfires lit</span>
+            <span className="text-xs font-mono uppercase tracking-widest text-ink-soft">Campfires lit</span>
             <span className="font-serif font-black text-ink">{campfireStats.completed} / {campfireStats.total}</span>
           </div>
           <div className="w-full bg-black/10 h-2 rounded-full overflow-hidden border border-black/5 mt-2">
             <motion.div
-              className="bg-quest-accent h-full"
+              className="bg-primary h-full"
               initial={{ width: 0 }}
               animate={{ width: `${campfireStats.total > 0 ? (campfireStats.completed / campfireStats.total) * 100 : 0}%` }}
               transition={{ duration: 0.6, ease: 'easeOut' }}
             />
           </div>
           {activities.length > 0 && (
-            <div className="flex items-center gap-2 mt-3 text-[11px] text-quest-moss">
+            <div className="flex items-center gap-2 mt-3 text-[11px] text-moss">
               <Shield className="w-3.5 h-3.5 shrink-0" />
               <span>
                 {pm.hoursTotal}h/week protected for {pm.primaryActivity}
@@ -445,8 +445,8 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
             }}
             className={`w-full flex items-center justify-center gap-2 py-3 px-5 rounded-xl border font-sans font-bold text-sm cursor-pointer transition-all ${
               allComplete
-                ? 'border-quest-moss/40 bg-quest-moss/10 hover:bg-quest-moss/15 text-quest-moss shadow-active'
-                : 'border-quest-accent/30 bg-quest-accent/10 hover:bg-quest-accent/15 text-quest-accent-soft'
+                ? 'border-moss/40 bg-moss/10 hover:bg-moss/15 text-moss shadow-active'
+                : 'border-primary/30 bg-primary/10 hover:bg-primary/15 text-primary-soft'
             }`}
           >
             <Sparkles className="w-4 h-4" />
@@ -456,11 +456,11 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
-            className="bg-paper border border-quest-border p-5 rounded-2xl text-left shadow-cozy w-full backdrop-blur-md"
+            className="bg-surface border border-line p-5 rounded-2xl text-left shadow-cozy w-full backdrop-blur-md"
           >
-            <div className="flex items-center justify-between border-b border-quest-border pb-3 mb-4">
+            <div className="flex items-center justify-between border-b border-line pb-3 mb-4">
               <h4 className="font-serif font-bold text-sm text-ink flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-quest-accent" />
+                <Sparkles className="w-4 h-4 text-primary" />
                 Forge New Task via AI Breakdown
               </h4>
               <button
@@ -472,7 +472,7 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
                   setAcknowledgeDuplicate(false);
                   setErrorMessage(null);
                 }}
-                className="text-quest-muted hover:text-ink cursor-pointer"
+                className="text-ink-soft hover:text-ink cursor-pointer"
                 disabled={isDecomposing}
                 aria-label="Close"
               >
@@ -499,14 +499,14 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
                     }}
                     className={`py-3 px-4 rounded-xl border font-sans font-bold text-xs flex flex-col items-center justify-center gap-1.5 transition-all text-center cursor-pointer ${
                       forgeMode === 'academic'
-                        ? 'border-quest-accent/50 bg-quest-accent/10 text-ink shadow-active ring-1 ring-quest-accent/20'
-                        : 'border-black/5 bg-[#f7fbf8]/40 text-quest-muted hover:text-ink'
+                        ? 'border-primary/50 bg-primary/10 text-ink shadow-active ring-1 ring-primary/20'
+                        : 'border-black/5 bg-[#f7fbf8]/40 text-ink-soft hover:text-ink'
                     }`}
                   >
                     <span className="text-xl">📚</span>
                     <div className="flex flex-col">
                       <span className="font-extrabold text-[12px]">School / Academic</span>
-                      <span className="text-[10px] font-normal text-quest-muted mt-0.5">Study, exams & homework</span>
+                      <span className="text-[10px] font-normal text-ink-soft mt-0.5">Study, exams & homework</span>
                     </div>
                   </button>
 
@@ -520,21 +520,21 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
                     }}
                     className={`py-3 px-4 rounded-xl border font-sans font-bold text-xs flex flex-col items-center justify-center gap-1.5 transition-all text-center cursor-pointer ${
                       forgeMode === 'custom'
-                        ? 'border-quest-moss/50 bg-quest-moss/10 text-ink shadow-active ring-1 ring-quest-moss/20'
-                        : 'border-black/5 bg-[#f7fbf8]/40 text-quest-muted hover:text-ink'
+                        ? 'border-moss/50 bg-moss/10 text-ink shadow-active ring-1 ring-moss/20'
+                        : 'border-black/5 bg-[#f7fbf8]/40 text-ink-soft hover:text-ink'
                     }`}
                   >
                     <span className="text-xl">🧭</span>
                     <div className="flex flex-col">
                       <span className="font-extrabold text-[12px]">Custom Trail</span>
-                      <span className="text-[10px] font-normal text-quest-muted mt-0.5">Hobbies, skills & side quests</span>
+                      <span className="text-[10px] font-normal text-ink-soft mt-0.5">Hobbies, skills & side quests</span>
                     </div>
                   </button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-3 mt-4">
                   <div className="md:col-span-6 flex flex-col">
-                    <label className="font-mono text-[10px] text-quest-muted tracking-widest mb-1 uppercase">
+                    <label className="font-mono text-[10px] text-ink-soft tracking-widest mb-1 uppercase">
                       {forgeMode === 'academic' ? 'What academic goal or assignment?' : 'What custom skill or endeavor?'}
                     </label>
                     <input
@@ -546,16 +546,16 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
                         setAcknowledgeDuplicate(false);
                       }}
                       placeholder={forgeMode === 'academic' ? 'e.g. Study for physics quiz' : 'e.g. Learn to speak Spanish'}
-                      className="p-2.5 border border-quest-border bg-[#f7fbf8] text-xs text-ink rounded-lg focus:outline-none focus:border-quest-accent"
+                      className="p-2.5 border border-line bg-[#f7fbf8] text-xs text-ink rounded-lg focus:outline-none focus:border-primary"
                     />
                   </div>
                   <div className="md:col-span-3 flex flex-col">
-                    <label className="font-mono text-[10px] text-quest-muted tracking-widest mb-1 uppercase">Subject</label>
+                    <label className="font-mono text-[10px] text-ink-soft tracking-widest mb-1 uppercase">Subject</label>
                     <select
                       disabled={isDecomposing}
                       value={newTaskSubject}
                       onChange={(e) => setNewTaskSubject(e.target.value)}
-                      className="p-2.5 border border-quest-border bg-[#f7fbf8] text-xs text-ink rounded-lg focus:outline-none focus:border-quest-accent h-[38px]"
+                      className="p-2.5 border border-line bg-[#f7fbf8] text-xs text-ink rounded-lg focus:outline-none focus:border-primary h-[38px]"
                     >
                       <option value="Math">Math</option>
                       <option value="English">English</option>
@@ -566,12 +566,12 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
                     </select>
                   </div>
                   <div className="md:col-span-3 flex flex-col">
-                    <label className="font-mono text-[10px] text-quest-muted tracking-widest mb-1 uppercase">Target trail</label>
+                    <label className="font-mono text-[10px] text-ink-soft tracking-widest mb-1 uppercase">Target trail</label>
                     <select
                       disabled={isDecomposing}
                       value={newTaskBranch}
                       onChange={(e) => setNewTaskBranch(e.target.value as 'academic' | 'custom')}
-                      className="p-2.5 border border-quest-border bg-[#f7fbf8] text-xs text-ink rounded-lg focus:outline-none focus:border-quest-accent h-[38px]"
+                      className="p-2.5 border border-line bg-[#f7fbf8] text-xs text-ink rounded-lg focus:outline-none focus:border-primary h-[38px]"
                     >
                       <option value="academic">Academic Trail</option>
                       <option value="custom">Custom Trail</option>
@@ -586,8 +586,8 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
                     onClick={() => setIsTaskConfirmed(true)}
                     className={`py-2 px-4 rounded-lg text-xs font-sans font-extrabold flex items-center gap-1.5 transition-all cursor-pointer ${
                       newTaskTitle.trim()
-                        ? 'bg-quest-accent text-white hover:opacity-90'
-                        : 'bg-black/5 border border-dashed border-quest-border text-quest-muted cursor-not-allowed opacity-50'
+                        ? 'bg-primary text-white hover:opacity-90'
+                        : 'bg-black/5 border border-dashed border-line text-ink-soft cursor-not-allowed opacity-50'
                     }`}
                   >
                     Confirm & Pre-plan →
@@ -596,11 +596,11 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="bg-[#f7fbf8]/60 p-4 rounded-xl border border-dashed border-quest-accent/30 flex items-start justify-between gap-3">
+                <div className="bg-[#f7fbf8]/60 p-4 rounded-xl border border-dashed border-primary/30 flex items-start justify-between gap-3">
                   <div>
-                    <span className="text-[10px] font-mono text-quest-accent-soft tracking-widest uppercase">Confirmed Goal</span>
+                    <span className="text-[10px] font-mono text-primary-soft tracking-widest uppercase">Confirmed Goal</span>
                     <h5 className="font-serif font-black text-ink text-md mt-0.5">{newTaskTitle}</h5>
-                    <div className="flex gap-2 items-center text-xs text-quest-muted mt-1 flex-wrap">
+                    <div className="flex gap-2 items-center text-xs text-ink-soft mt-1 flex-wrap">
                       <span className="bg-black/5 px-2 py-0.5 rounded text-[11px] text-ink/80">Subject: {newTaskSubject}</span>
                       <span className="bg-black/5 px-2 py-0.5 rounded text-[11px] text-ink/80">
                         Track: {newTaskBranch === 'academic' ? 'Academic' : 'Custom'}
@@ -609,15 +609,15 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
                   </div>
                   <button
                     onClick={() => setIsTaskConfirmed(false)}
-                    className="text-quest-accent-soft hover:text-ink transition-colors text-xs underline cursor-pointer whitespace-nowrap"
+                    className="text-primary-soft hover:text-ink transition-colors text-xs underline cursor-pointer whitespace-nowrap"
                     disabled={isDecomposing}
                   >
                     Edit
                   </button>
                 </div>
 
-                <div className="bg-quest-accent/10 border border-quest-accent/20 p-3 rounded-lg text-quest-accent-soft text-xs">
-                  💡 Knavi breaks this into milestones and sequences them onto a new trail.
+                <div className="bg-primary/10 border border-primary/20 p-3 rounded-lg text-primary-soft text-xs">
+                  💡 Strail breaks this into milestones and sequences them onto a new trail.
                 </div>
 
                 {duplicateTaskTitle && (
@@ -678,8 +678,8 @@ export default function JourneyView({ levels, tasks = [], streak, activities, us
                   }}
                   className={`w-full md:w-auto py-2.5 px-5 rounded-lg text-xs font-sans font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                     isDecomposing || (duplicateTaskTitle && !acknowledgeDuplicate)
-                      ? 'bg-quest-accent/40 text-white cursor-not-allowed'
-                      : 'bg-quest-accent text-white hover:opacity-90 shadow-active'
+                      ? 'bg-primary/40 text-white cursor-not-allowed'
+                      : 'bg-primary text-white hover:opacity-90 shadow-active'
                   }`}
                 >
                   {isDecomposing ? (
