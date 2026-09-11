@@ -16,6 +16,7 @@ import { User, Level, Streak, Activity, Task } from './types/index';
 import { supabase, isSupabaseConfigured } from './lib/supabase/client';
 import { signIn, signUp, signOut, getActivities, getLevels, getActivePlan, getTasksForPlan, getStreak, completeLevel } from './lib/supabase/queries';
 import { sound } from './lib/sound';
+import { trackPageView, trackEvent } from './lib/analytics';
 
 // Delegated, document-level click sound for every ordinary <button> in the
 // app (nav tabs, add/remove rows, close buttons, etc). Buttons that already
@@ -129,6 +130,41 @@ export default function App() {
 
     return () => listener.subscription.unsubscribe();
   }, []);
+
+  // --- GA4 virtual page-view tracking --------------------------------
+  // No router, so "page views" are modeled as logical screens instead of
+  // real navigations. None of these paths are real routes — nothing here
+  // changes the URL or any rendered UI.
+  useEffect(() => {
+    if (!isAuthenticatedChecked) return;
+
+    if (!user) {
+      if (showLanding) {
+        trackPageView('/landing', 'Main Landing');
+      } else {
+        trackPageView(
+          isAuthModeLogin ? '/signin' : '/signup',
+          isAuthModeLogin ? 'Sign In' : 'Account Creation'
+        );
+      }
+      return;
+    }
+
+    if (user.isGuest) {
+      trackPageView('/guest', 'Guest Feature');
+      return;
+    }
+
+    const APP_VIEW_PAGES: Record<string, { path: string; title: string }> = {
+      journey: { path: '/app/trail', title: 'Daily Trail' },
+      dashboard: { path: '/app/dashboard', title: 'Standings' },
+      setup: { path: '/app/setup', title: 'Weekly Setup' },
+      public: { path: '/app/public-journeys', title: 'Public Journeys' },
+    };
+    const page = APP_VIEW_PAGES[currentView];
+    if (page) trackPageView(page.path, page.title);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticatedChecked, user?.id, user?.isGuest, showLanding, isAuthModeLogin, currentView]);
 
   const syncUserStateAndSchedule = async () => {
     if (!user) return;
@@ -401,6 +437,11 @@ export default function App() {
                 <button
                   type="submit"
                   disabled={isAuthSubmitting}
+                  onClick={() => {
+                    if (!isAuthModeLogin) {
+                      trackEvent('create_account_click', { button_label: 'Create Account' });
+                    }
+                  }}
                   className={`w-full py-3.5 text-white shadow-cozy rounded-xl text-sm font-bold cursor-pointer transition-all ${
                     isAuthSubmitting ? 'bg-primary/70 cursor-not-allowed' : 'bg-primary hover:opacity-90'
                   }`}

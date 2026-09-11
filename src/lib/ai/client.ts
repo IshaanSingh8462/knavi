@@ -14,8 +14,16 @@ const GEMINI_API_KEY =
   process.env.GEMINI_KEY ||
   process.env.API_KEY;
 
+// Google retired the gemini-2.5 / gemini-3.1 generation for newly-created
+// API keys — an older, "grandfathered" key can still call those model
+// names, but a fresh key gets a 404 ("no longer available to new users").
+// gemini-3.6-flash and gemini-3.5-flash-lite are the current generation and
+// work for both old and new keys, so they're listed first. The legacy
+// names are kept as a fallback purely for keys that still support them.
 const MODEL_CANDIDATES = [
   process.env.GEMINI_MODEL,
+  'gemini-3.6-flash',
+  'gemini-3.5-flash-lite',
   'gemini-3.1-flash-lite',
   'gemini-2.5-flash',
   'gemini-2.5-flash-lite',

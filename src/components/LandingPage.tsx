@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useScrollDepthTracking } from '../lib/useScrollDepth';
 import {
   ArrowRight,
   Lock,
@@ -226,14 +227,6 @@ function Hero({ onSignUp, onSignIn, onGuest, isGuestSubmitting }: LandingPagePro
 
           <p className="mt-6 max-w-md font-body text-lg leading-relaxed" style={{ color: 'var(--color-lp-ink-soft)' }}>
             Strail breaks your goals, classes, and commitments into a trail of small steps — so overwhelm turns into a path you can actually walk, one node at a time.
-          </p>
-
-          {/* Plain-language statement of what the product is, for people
-              (and search engines) landing on the page cold — kept short and
-              visually secondary so it doesn't compete with the headline
-              copy above. */}
-          <p className="mt-3 max-w-md font-body text-sm leading-relaxed" style={{ color: 'var(--color-lp-ink-faint)' }}>
-            Strail is an AI-powered task breakdown tool that helps students turn overwhelming assignments and goals into simple, actionable steps.
           </p>
 
           <div className="mt-9 flex flex-wrap items-center gap-4">
@@ -747,6 +740,8 @@ function Footer({ onJump }: { onJump: (id: string) => void }) {
 }
 
 export default function LandingPage({ onSignIn, onSignUp, onGuest, isGuestSubmitting }: LandingPageProps) {
+  useScrollDepthTracking('Main Landing');
+
   const sectionElsRef = useRef<Record<string, HTMLElement | null>>({});
   const [activeIndex, setActiveIndex] = useState(0);
 
