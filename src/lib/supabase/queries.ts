@@ -5,7 +5,14 @@ export async function signUp(email: string, password: string, name: string) {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { name } },
+    options: {
+      data: { name },
+      // Points confirmation emails at the new dedicated callback route
+      // instead of the bare app root, so Supabase's detectSessionInUrl
+      // handoff has somewhere sensible to land. Set the same URL as an
+      // allowed redirect in Supabase -> Authentication -> URL Configuration.
+      emailRedirectTo: `${window.location.origin}/auth/callback`,
+    },
   });
   if (error) throw error;
   return data;
@@ -26,6 +33,22 @@ export async function signOut() {
 // already been re-verified via signIn(). Updates the already-live session
 // to the new password.
 export async function updatePassword(newPassword: string): Promise<void> {
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw error;
+}
+
+// Forgot-password flow (new — /reset-password). Sends a recovery email
+// whose link lands on /auth/callback with a recovery session, then the
+// person is routed to /reset-password to actually set a new password via
+// confirmPasswordReset() below.
+export async function requestPasswordReset(email: string): Promise<void> {
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+    redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+  });
+  if (error) throw error;
+}
+
+export async function confirmPasswordReset(newPassword: string): Promise<void> {
   const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) throw error;
 }
@@ -128,6 +151,21 @@ export async function getPublicTasks(): Promise<Task[]> {
     .limit(60);
   if (error) throw error;
   return (data || []) as Task[];
+}
+
+// Fetches a single public task by id — powers the new shareable
+// /journeys/:taskId URL. Returns null (rather than throwing) if the task
+// doesn't exist or isn't public, so the detail page can render a clean
+// "not found" state instead of a raw error.
+export async function getPublicTaskById(taskId: string): Promise<Task | null> {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('id', taskId)
+    .eq('is_public', true)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as Task) || null;
 }
 
 export async function getPublicLevelCounts(taskIds: string[]): Promise<Record<string, number>> {

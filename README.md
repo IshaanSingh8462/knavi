@@ -1,106 +1,113 @@
-# Knavi — full project export
+# Strail — real routing migration
 
-This is the complete current source, including everything from the original
-MVP plus three rounds of fixes made since:
+This replaces the single-URL, state-switched SPA with actual routes via
+`react-router-dom`. Every file below is either **new** or a **full
+replacement** for an existing file at the same path — copy them into your
+repo overwriting what's there.
 
-1. **Vercel serverless split** — Express routes extracted into
-   `src/server/app.ts` and reused by both `server.ts` (local dev) and
-   `api/index.ts` (Vercel serverless function), with `vercel.json` routing
-   `/api/*` to it.
-2. **ESM import-extension fix** — every relative import in the server-side
-   call graph now has an explicit `.js` extension, required by Node's
-   native ESM loader under Vercel (`"type": "module"` in `package.json`).
-3. **Two bug fixes:**
-   - New trails (via "Forge New Task") could get their first node stuck
-     `locked` if another trail in the same branch was already active.
-     Fixed in `src/server/app.ts` — every new trail now always starts its
-     own `branch_order` fresh at 0 with its own first node active.
-   - `complete_level` / `revert_level_completion` (in `supabase/schema.sql`)
-     only scoped node-unlocking by `task_id` for the `custom` branch —
-     fixed to scope by `task_id` for every branch, so multiple trails in
-     the same branch can't cross-unlock each other's nodes.
-   - The app view reset to the main screen whenever you switched tabs and
-     came back. Fixed in `src/App.tsx` — the data-sync effect now keys off
-     `user?.id` instead of the whole `user` object, so a routine Supabase
-     token refresh on tab focus no longer forces a view reset.
+## How to apply
 
-## Setup
+1. Copy every file in this archive into your repo at the matching path
+   (e.g. `src/App.tsx` here replaces your `src/App.tsx`).
+2. **Delete `src/components/PublicJourneys.tsx`** — it's fully superseded
+   by `src/pages/PublicJourneysGalleryPage.tsx` +
+   `src/pages/PublicJourneyDetailPage.tsx`. Nothing else imports it anymore.
+3. `npm install` (pulls in `react-router-dom`, added to `package.json`).
+4. `npm run dev` and click through the flows below.
 
-1. `npm install`
-2. Copy `.env.example` to `.env.local` and fill in your Supabase and Gemini
-   credentials.
-3. Run `supabase/schema.sql` in the Supabase SQL editor (safe to re-run).
-4. Enable **Anonymous Sign-Ins** in Supabase → Authentication → Providers
-   (required for the guest/"Enter as Guest" flow).
-5. `npm run dev` — runs locally on port 3000.
+Nothing under `src/components/` other than `LandingPage.tsx` changed —
+`JourneyView`, `Dashboard`, `WeeklySetup`, `OnboardingFlow`, `Trail`,
+`NodeDetail`, `ChangePasswordModal`, etc. are reused as-is, just called
+from route pages instead of `App.tsx`'s old if/else tree.
 
-## Deploying to Vercel
+## New route map
 
-- Push to your repo and import into Vercel as normal — no special build
-  command needed. Vercel auto-detects the Vite framework for the static
-  build and auto-detects `api/index.ts` as a serverless function.
-- In Vercel → Project Settings → Environment Variables, set
-  `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `GEMINI_API_KEY`.
-  `GEMINI_API_KEY` should **not** be prefixed with `VITE_` — it's read
-  server-side only, in `api/index.ts`'s call chain.
-- Re-run `supabase/schema.sql` against your Supabase project if you
-  haven't already applied the completion-scoping fix described above — it
-  won't come through automatically via git/Vercel since it's a database
-  migration, not application code.
+| Path | Page | Access |
+|---|---|---|
+| `/` | Landing | anyone signed out |
+| `/login`, `/signup` | Sign in / create account | anyone signed out |
+| `/guest` | Auto-starts a guest (anonymous) session, redirects to `/journeys` | anyone |
+| `/journeys` | Public journeys gallery | **everyone** — anonymous, guest, or signed in |
+| `/journeys/:taskId` | **New** — single shareable, indexable journey page | **everyone**, adapts per viewer (see below) |
+| `/auth/callback` | Lands here from email-confirm / password-recovery links | — |
+| `/reset-password` | Forgot-password request + set-new-password | — |
+| `/onboarding` | Protected-time setup | signed in, not yet onboarded |
+| `/app` | Daily Trail | signed in, onboarded, non-guest |
+| `/app/dashboard` | Standings | same |
+| `/app/setup` | Weekly Setup | same |
+| `/privacy`, `/terms` | Placeholder legal pages | anyone |
+| `*` | 404 | anyone |
 
-## Project structure
+### `/journeys/:taskId` — the new shareable public-journey page
 
-```
-index.html                       Vite entry HTML
-vite.config.ts                   Vite + Tailwind config
-tsconfig.json
-package.json
-vercel.json                      Routes /api/* to the serverless function
-server.ts                        Local dev entry (npm run dev)
-api/index.ts                     Vercel serverless function entry
+This is the actual net-new capability you asked for. One component, three
+viewer states, driven entirely by who's looking:
 
-src/
-  main.tsx, App.tsx              App root + view routing/auth state
-  index.css                      Tailwind theme + Knavi palette
-  vite-env.d.ts
-  types/index.ts                 Shared TS types
+- **Anonymous (no session at all):** read-only trail, no sandbox
+  interactivity, "Sign up to fork this" CTA. This is what search engines
+  and shared links will see — real crawlable URLs for content that used to
+  be locked behind client-side state.
+- **Guest (anonymous-auth session from `/guest`):** the same local sandbox
+  behavior as before — complete/undo/break-down steps, nothing persists.
+- **Signed-in user:** the existing fork flow, unchanged.
 
-  components/
-    Trail.tsx                    Node/path rendering for one trail
-    NodeDetail.tsx                Node detail drawer
-    JourneyView.tsx               Main daily-trail screen, trail switcher
-    Dashboard.tsx                  Streaks + per-trail progress
-    WeeklySetup.tsx                 Sunday weekly plan builder
-    OnboardingFlow.tsx               Protected-time onboarding
-    PublicJourneys.tsx                Gallery + guest sandbox + fork
-    Mascot.tsx                        Trail-report mood widget
-    BrandHero.tsx                      Sign-in page illustration
+## Required Supabase dashboard config (can't be done via code)
 
-  lib/
-    constants.ts                 MAX_NODE_DEPTH
-    supabase/
-      client.ts                  Browser Supabase client
-      serverClient.ts             Server-side scoped Supabase client
-      queries.ts                   All client-side Supabase calls
-    ai/
-      client.ts                  Gemini calls + retry/fallback logic
-      prompts.ts                   Prompt templates
-      schemas.ts                    Zod validation for AI output
+Go to **Authentication → URL Configuration** in your Supabase project and
+set:
 
-  server/
-    app.ts                       All Express route logic (shared by
-                                  server.ts and api/index.ts)
+- **Site URL:** `https://getstrail.me`
+- **Redirect URLs:** add `https://getstrail.me/auth/callback` (and
+  `http://localhost:3000/auth/callback` for local dev)
 
-supabase/
-  schema.sql                     Full schema, RLS policies, and functions
-                                  (includes the task-scoping fix)
-```
+This is what makes email-confirmation and password-reset links land on the
+new `/auth/callback` route instead of your bare domain root.
 
-## Known open items (unchanged from before this export)
-- Freemium/paywall gating — spec'd, not implemented.
-- "AI Explanation" button in the node drawer — UI present, disabled, no
-  backend wired.
-- Only one trail biome ("grassy") — background generation is
-  parametrizable but not wired to a picker.
-- No real-device mobile testing yet.
-- Public Journeys gallery has no pagination (fine at current scale).
+## GA4 — this is the actual fix for your original problem
+
+- `src/lib/analytics.ts` now exports `usePageTracking()`, mounted once in
+  `App.tsx`. It fires a real `page_view` off `useLocation()` on every
+  route change — no more manually calling `trackPageView` from a dozen
+  different state-change effects.
+- Authenticated (non-guest) users now get a stable GA4 `user_id` set via
+  `setGaUserId()` in `appContext.tsx`, so you can track a person's usage
+  across sessions/devices — this is the correct replacement for the
+  Supabase-URL-code idea from earlier, which is an auth mechanism, not a
+  tracking one.
+- `index.html`'s `gtag('config', ..., { send_page_view: false })` should
+  stay as-is — you still want manual control since not every route change
+  is a meaningful "page" (e.g. modal opens), and `usePageTracking` already
+  covers real navigations.
+
+## Known simplification vs. the original
+
+The original had a special minimal header (no nav tabs) for the very first
+"you're onboarded but have no plan yet" screen. In the new version,
+`/app/setup` always renders inside the full `AppLayout` (with nav tabs
+visible). Functionally nothing breaks — `JourneyPage` still redirects to
+`/app/setup` when there's no active plan — it's just a cosmetic difference
+on that one first-run screen. Flagging it since it wasn't something you
+explicitly asked to change.
+
+## Files in this archive
+
+**New:**
+`src/lib/appContext.tsx`, `src/routes/guards.tsx`,
+`src/pages/{LandingPageRoute,AuthPage,AuthCallbackPage,GuestPage,
+OnboardingPage,AppLayout,JourneyPage,DashboardPage,SetupPage,
+PublicJourneysGalleryPage,PublicJourneyDetailPage,ResetPasswordPage,
+NotFoundPage,PrivacyPage,TermsPage}.tsx`
+
+**Modified (full replacements):**
+`package.json`, `vercel.json`, `src/main.tsx`, `src/App.tsx`,
+`src/lib/analytics.ts`, `src/lib/supabase/queries.ts`,
+`src/components/LandingPage.tsx`
+
+**Delete:**
+`src/components/PublicJourneys.tsx`
+
+All 21 new/changed `.ts`/`.tsx` files were run through `esbuild` for a
+syntax check (parses clean) — I don't have your actual `node_modules`
+installed in this session, so a full `tsc --noEmit` against your real
+dependency tree hasn't been run. Run `npm run lint` after applying the
+patch to confirm.
