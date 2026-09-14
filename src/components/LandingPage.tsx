@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useScrollDepthTracking } from '../lib/useScrollDepth';
+import SiteFooter from './SiteFooter';
 import {
   ArrowRight,
   Lock,
   Check,
-  Instagram,
   Sparkles,
   CalendarClock,
   Compass,
@@ -660,62 +660,6 @@ function CallToAction({ onSignUp }: { onSignUp: () => void }) {
   );
 }
 
-function Footer({ onJump }: { onJump: (id: string) => void }) {
-  return (
-    <footer className="border-t" style={{ backgroundColor: 'var(--color-lp-forest-950)', borderColor: 'rgba(247,241,225,0.1)' }}>
-      <div className="mx-auto max-w-6xl px-5 sm:px-8 py-14">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-10">
-          <div>
-            <button type="button" onClick={() => onJump('top')} className="flex items-center gap-2.5 cursor-pointer">
-              <span className="grid place-items-center w-9 h-9 rounded-lg p-1.5" style={{ backgroundColor: 'rgba(247,241,225,0.1)' }}>
-                <img src={strailLogo} alt="Strail" className="w-full h-full object-contain" />
-              </span>
-              <span className="font-display font-bold text-lg" style={{ color: 'var(--color-lp-cream-paper)' }}>Strail</span>
-            </button>
-            <p className="mt-3 font-body text-sm max-w-xs" style={{ color: 'rgba(231,242,227,0.6)' }}>
-              Stop overwhelm. Turn big goals into small steps.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-x-12 gap-y-8">
-            <div>
-              <p className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'rgba(231,242,227,0.4)' }}>Site</p>
-              <ul className="mt-3 space-y-2 font-body text-sm" style={{ color: 'rgba(231,242,227,0.7)' }}>
-                {NAV_LINKS.map((l) => (
-                  <li key={l.href}>
-                    <button type="button" onClick={() => onJump(l.href)} className="hover:opacity-80 transition-opacity cursor-pointer">{l.label}</button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <p className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'rgba(231,242,227,0.4)' }}>Legal</p>
-              <ul className="mt-3 space-y-2 font-body text-sm" style={{ color: 'rgba(231,242,227,0.7)' }}>
-                <li><Link to="/privacy" className="hover:opacity-80 transition-opacity">Privacy Policy</Link></li>
-                <li><Link to="/terms" className="hover:opacity-80 transition-opacity">Terms &amp; Conditions</Link></li>
-              </ul>
-            </div>
-            <div>
-              <p className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'rgba(231,242,227,0.4)' }}>Follow</p>
-              <ul className="mt-3 space-y-2 font-body text-sm" style={{ color: 'rgba(231,242,227,0.7)' }}>
-                <li>
-                  <a href="#" className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity">
-                    <Instagram className="w-4 h-4" /> Instagram
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-14 pt-6 border-t flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between" style={{ borderColor: 'rgba(247,241,225,0.1)' }}>
-          <p className="font-body text-xs" style={{ color: 'rgba(231,242,227,0.4)' }}>© {new Date().getFullYear()} Strail. Made for the ones juggling too much.</p>
-        </div>
-      </div>
-    </footer>
-  );
-}
-
 export default function LandingPage({ onSignIn, onSignUp, onGuest, isGuestSubmitting }: LandingPageProps) {
   useScrollDepthTracking('Main Landing');
 
@@ -747,6 +691,23 @@ export default function LandingPage({ onSignIn, onSignUp, onGuest, isGuestSubmit
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // If we arrived here via SiteFooter's "About"/"Features"/etc links from
+  // a different page (e.g. clicked "Features" while on /privacy), scroll
+  // to that section once the sections have mounted, then clear the state
+  // so a later refresh or back/forward doesn't re-trigger it.
+  const location = useLocation();
+  const navigate = useNavigate();
+  useEffect(() => {
+    const scrollTo = (location.state as any)?.scrollTo;
+    if (!scrollTo) return;
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(scrollTo)?.scrollIntoView({ behavior: 'smooth' });
+    });
+    navigate(location.pathname, { replace: true, state: {} });
+    return () => window.cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <div className="relative font-body overflow-x-hidden" style={{ backgroundColor: 'var(--color-lp-cream)' }}>
       <SideTrailNav activeIndex={activeIndex} onJump={jumpTo} />
@@ -759,7 +720,7 @@ export default function LandingPage({ onSignIn, onSignUp, onGuest, isGuestSubmit
         <Journeys onJump={jumpTo} />
         <CallToAction onSignUp={onSignUp} />
       </main>
-      <Footer onJump={jumpTo} />
+      <SiteFooter />
     </div>
   );
 }

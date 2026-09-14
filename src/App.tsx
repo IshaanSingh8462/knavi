@@ -4,6 +4,7 @@ import { AlertCircle } from 'lucide-react';
 
 import { AppDataProvider, useAppData } from './lib/appContext';
 import { usePageTracking } from './lib/analytics';
+import { useScrollManager } from './lib/scrollManager';
 import { sound } from './lib/sound';
 
 import { RequireSessionChecked, RedirectIfAuthenticated, RequireNeedsOnboarding, RequireOnboardedApp } from './routes/guards';
@@ -63,6 +64,7 @@ function NotConfiguredScreen() {
 function AppRoutes() {
   const { isSupabaseConfigured } = useAppData();
   usePageTracking();
+  useScrollManager();
   useGlobalClickSound();
 
   if (!isSupabaseConfigured) return <NotConfiguredScreen />;
