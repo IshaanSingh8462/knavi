@@ -72,7 +72,7 @@ export default function SiteFooter() {
               <p className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'rgba(231,242,227,0.4)' }}>Follow</p>
               <ul className="mt-3 space-y-2 font-body text-sm" style={{ color: 'rgba(231,242,227,0.7)' }}>
                 <li>
-                  <a href="#" className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity">
+                  <a href="https://www.instagram.com/getstrail/" className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity">
                     <Instagram className="w-4 h-4" /> Instagram
                   </a>
                 </li>
