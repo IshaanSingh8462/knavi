@@ -1,4 +1,9 @@
 User-agent: *
 Allow: /
+Disallow: /app/
+Disallow: /onboarding
+Disallow: /guest
+Disallow: /auth/callback
+Disallow: /reset-password
 
-Sitemap: https://getstrail.me/sitemap.xml
+Sitemap: https://www.getstrail.me/sitemap.xml

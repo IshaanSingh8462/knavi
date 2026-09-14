@@ -14,6 +14,7 @@ import Trail from '../components/Trail';
 import NodeDetail from '../components/NodeDetail';
 import { useAppData } from '../lib/appContext';
 import { sound } from '../lib/sound';
+import { useDocumentMeta } from '../lib/useDocumentMeta';
 
 const BRANCH_EMOJI: Record<string, string> = { academic: '📚', light: '✨', custom: '🧭', activity: '🏕️' };
 
@@ -36,6 +37,17 @@ export default function PublicJourneyDetailPage() {
   const [previewLevel, setPreviewLevel] = useState<Level | null>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [timerInterval, setTimerInterval] = useState<ReturnType<typeof setInterval> | null>(null);
+
+  // Per-journey browser tab title/meta once the task has loaded. See the
+  // caveat in useDocumentMeta.ts — this does NOT fix link-preview/social
+  // share cards for this URL, since those are read from index.html's
+  // static tags before any JS runs. Fixing that needs SSR/prerendering.
+  useDocumentMeta({
+    title: task ? `${task.title} — A Strail Journey` : 'Public Journey — Strail',
+    description: task
+      ? `A ${levels.length}-step trail for "${task.title}", shared by ${task.author_name || 'a Strail student'}.`
+      : undefined,
+  });
 
   const [isForking, setIsForking] = useState(false);
   const [forkError, setForkError] = useState<string | null>(null);

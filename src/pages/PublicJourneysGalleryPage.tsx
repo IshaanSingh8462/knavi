@@ -4,10 +4,16 @@ import { Compass, ArrowLeft, UserRound, Sparkles } from 'lucide-react';
 import { PublicJourneyCard } from '../types/index';
 import { getPublicTasks, getPublicLevelCounts } from '../lib/supabase/queries';
 import { useAppData } from '../lib/appContext';
+import { useDocumentMeta } from '../lib/useDocumentMeta';
 
 const BRANCH_EMOJI: Record<string, string> = { academic: '📚', light: '✨', custom: '🧭', activity: '🏕️' };
 
 export default function PublicJourneysGalleryPage() {
+  useDocumentMeta({
+    title: 'Public Journeys — Strail',
+    description: 'Browse trails other students have built and shared on Strail — real task breakdowns for real goals.',
+  });
+
   const { user } = useAppData();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);

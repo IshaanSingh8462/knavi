@@ -224,6 +224,9 @@ function Hero({ onSignUp, onSignIn, onGuest, isGuestSubmitting }: LandingPagePro
           <p className="mt-6 max-w-md font-body text-lg leading-relaxed" style={{ color: 'var(--color-lp-ink-soft)' }}>
             Strail breaks your goals, classes, and commitments into a trail of small steps — so overwhelm turns into a path you can actually walk, one node at a time.
           </p>
+          <p className="mt-2 max-w-md font-body text-sm" style={{ color: 'var(--color-lp-ink-faint)' }}>
+            Strail is a task breakdown tool that helps students turn assignments, goals, and commitments into small, manageable steps.
+          </p>
 
           <div className="mt-9 flex flex-wrap items-center gap-4">
             <button
@@ -696,7 +699,7 @@ function Footer({ onJump }: { onJump: (id: string) => void }) {
               <p className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'rgba(231,242,227,0.4)' }}>Follow</p>
               <ul className="mt-3 space-y-2 font-body text-sm" style={{ color: 'rgba(231,242,227,0.7)' }}>
                 <li>
-                  <a href="https://www.instagram.com/getstrail/" className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity">
+                  <a href="#" className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity">
                     <Instagram className="w-4 h-4" /> Instagram
                   </a>
                 </li>

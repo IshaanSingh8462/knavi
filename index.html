@@ -2,6 +2,80 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Strail — Task Breakdown for Students</title>
+    <meta
+      name="description"
+      content="Strail is an AI-powered task breakdown tool that turns students' goals, assignments, and commitments into small, manageable steps."
+    />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://www.getstrail.me/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Strail" />
+    <meta property="og:title" content="Strail — Task Breakdown for Students" />
+    <meta
+      property="og:description"
+      content="Strail is an AI-powered task breakdown tool that turns students' goals, assignments, and commitments into small, manageable steps."
+    />
+    <meta property="og:url" content="https://www.getstrail.me/" />
+    <meta property="og:locale" content="en_US" />
+    <!-- No og:image yet on purpose — the only image asset in /public right
+         now is the square app icon, which would look distorted/cropped as
+         a social preview. Add a real 1200x630 image and wire this in when
+         one exists, rather than shipping a bad-looking preview. -->
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Strail — Task Breakdown for Students" />
+    <meta
+      name="twitter:description"
+      content="Strail is an AI-powered task breakdown tool that turns students' goals, assignments, and commitments into small, manageable steps."
+    />
+
+    <link rel="icon" type="image/png" href="/strail-logo.png" />
+
+    <!-- Fonts: real <link> tags instead of a CSS @import, so the browser
+         can discover and start these requests immediately instead of
+         waiting to parse index.css first. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@100..800&family=Manrope:wght@400..800&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Structured data. Deliberately minimal — WebApplication + WebSite
+         only. No Organization, ratings, reviews, or download counts: none
+         of that is real/available for Strail right now, and inventing it
+         would violate schema.org guidelines and search engine policies. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Strail",
+      "url": "https://www.getstrail.me/",
+      "description": "Strail is an AI-powered task breakdown tool that turns students' goals, assignments, and commitments into small, manageable steps.",
+      "applicationCategory": "EducationApplication",
+      "operatingSystem": "Any (web browser)",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Strail",
+      "url": "https://www.getstrail.me/"
+    }
+    </script>
+
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=%VITE_GA_MEASUREMENT_ID%"></script>
     <script>
@@ -9,16 +83,12 @@
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
 
-      // send_page_view is disabled here on purpose: this SPA has one URL
-      // and no router, so a real "navigation" never fires. Virtual page
-      // views for each logical screen (Landing, Guest, Account Creation,
-      // etc) are sent manually instead — see src/lib/analytics.ts and
-      // the tracking effect in App.tsx.
+      // send_page_view is disabled here on purpose: usePageTracking()
+      // (src/lib/analytics.ts) now fires real page_view events off actual
+      // route changes via react-router, so gtag's own automatic pageview
+      // would just double-count every navigation.
       gtag('config', '%VITE_GA_MEASUREMENT_ID%', { send_page_view: false });
     </script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/png" href="/strail-logo.png" />
-    <title>Strail</title>
   </head>
   <body>
     <div id="root"></div>
