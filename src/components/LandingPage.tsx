@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useScrollDepthTracking } from '../lib/useScrollDepth';
-import SiteFooter from './SiteFooter';
 import {
   ArrowRight,
   Lock,
   Check,
+  Instagram,
   Sparkles,
   CalendarClock,
   Compass,
@@ -14,10 +14,10 @@ import {
 import strailLogo from '../assets/strail-logo.png';
 
 interface LandingPageProps {
-  onSignIn: () => void;
-  onSignUp: () => void;
-  onGuest: () => void;
-  isGuestSubmitting?: boolean;
+  onSignIn: () => void;          // opens login mode on the auth card
+  onSignUp: () => void;          // opens signup mode on the auth card
+  onGuest: () => void;           // triggers guest entry
+  isGuestSubmitting?: boolean;   // reflects App.tsx's guest-auth in-flight state
 }
 
 const SECTIONS = [
@@ -28,6 +28,9 @@ const SECTIONS = [
   { id: 'journeys', label: 'Journeys' },
 ];
 
+/** Small circular node-state badge — mirrors the real app's node language
+ *  (locked / active / done) so the marketing page never invents a visual
+ *  vocabulary the product doesn't already use. */
 function NodeBadge({ state, size = 40, ring = false }: { state: 'done' | 'active' | 'locked'; size?: number; ring?: boolean }) {
   const fill = state === 'done' ? 'var(--color-lp-trail-600)' : state === 'active' ? 'var(--color-lp-gold-600)' : 'var(--color-lp-bark-300)';
   return (
@@ -49,6 +52,8 @@ function NodeBadge({ state, size = 40, ring = false }: { state: 'done' | 'active
   );
 }
 
+/** Left-edge scroll progress rail — sections behind you read "done," the
+ *  current one pulses "active," sections ahead read "locked." */
 function SideTrailNav({ activeIndex, onJump }: { activeIndex: number; onJump: (id: string) => void }) {
   return (
     <div className="hidden lg:flex flex-col fixed left-6 top-1/2 -translate-y-1/2 z-40">
@@ -142,6 +147,11 @@ function Header({ onJump, onSignUp }: { onJump: (id: string) => void; onSignUp: 
               </button>
             </li>
           ))}
+          <li>
+            <Link to="/blog" className="hover:opacity-70 transition-opacity cursor-pointer">
+              Blog
+            </Link>
+          </li>
         </ul>
 
         <div className="hidden md:flex items-center gap-3">
@@ -181,6 +191,11 @@ function Header({ onJump, onSignUp }: { onJump: (id: string) => void; onSignUp: 
                 </button>
               </li>
             ))}
+            <li className="border-b" style={{ borderColor: 'rgba(27,27,22,0.05)' }}>
+              <Link to="/blog" onClick={() => setMenuOpen(false)} className="block w-full text-left py-3 cursor-pointer">
+                Blog
+              </Link>
+            </li>
           </ul>
           <button
             type="button"
@@ -223,9 +238,6 @@ function Hero({ onSignUp, onSignIn, onGuest, isGuestSubmitting }: LandingPagePro
 
           <p className="mt-6 max-w-md font-body text-lg leading-relaxed" style={{ color: 'var(--color-lp-ink-soft)' }}>
             Strail breaks your goals, classes, and commitments into a trail of small steps — so overwhelm turns into a path you can actually walk, one node at a time.
-          </p>
-          <p className="mt-2 max-w-md font-body text-sm" style={{ color: 'var(--color-lp-ink-faint)' }}>
-            Strail is a task breakdown tool that helps students turn assignments, goals, and commitments into small, manageable steps.
           </p>
 
           <div className="mt-9 flex flex-wrap items-center gap-4">
@@ -291,15 +303,25 @@ function Hero({ onSignUp, onSignIn, onGuest, isGuestSubmitting }: LandingPagePro
 const PROBLEM_TEXT =
   "Every student is carrying five things at once — classes, clubs, a job, applications, a life outside all of it. The advice is always the same: break it down. But nobody says how, or where to start, or what to do when the list keeps growing faster than you can cross things off.";
 
+// Wheel/touch delta needed to reveal one more word once the section is pinned.
 const PX_PER_WORD = 45;
 
+/**
+ * Scroll-locking word reveal. While this section is docked at the top of the
+ * viewport and not yet fully revealed, wheel/touch input is captured and
+ * converted into reveal progress instead of moving the page — so the
+ * animation can never be scrolled past half-finished, and there's no dead
+ * scroll runway left over afterwards (the section is exactly one viewport
+ * tall; once revealed it releases the scroll and behaves like a normal
+ * section).
+ */
 function ProblemStatement() {
   const sectionRef = useRef<HTMLElement>(null);
   const words = useMemo(() => PROBLEM_TEXT.split(' '), []);
   const [litCount, setLitCount] = useState(0);
   const [locked, setLocked] = useState(false);
 
-  const progressRef = useRef(0);
+  const progressRef = useRef(0); // fractional word progress, 0..words.length
   const lockedRef = useRef(false);
   const completedRef = useRef(false);
   const touchYRef = useRef<number | null>(null);
@@ -317,6 +339,8 @@ function ProblemStatement() {
         lockedRef.current = false;
         setLocked(false);
       } else if (progressRef.current <= 0 && delta < 0) {
+        // Scrolled all the way back to the start — release so the user can
+        // continue scrolling up into whatever comes before this section.
         lockedRef.current = false;
         setLocked(false);
       }
@@ -327,6 +351,9 @@ function ProblemStatement() {
       const rect = section.getBoundingClientRect();
       const coveringViewport = rect.top <= 0 && rect.bottom > 0;
       if (deltaY > 0 && coveringViewport) {
+        // Snap the section into perfect alignment with the top of the
+        // viewport before pinning, so a fast flick that overshoots the
+        // trigger point doesn't leave the section visibly offset.
         if (rect.top !== 0) window.scrollBy(0, rect.top);
         lockedRef.current = true;
         setLocked(true);
@@ -350,7 +377,7 @@ function ProblemStatement() {
     const onTouchMove = (e: TouchEvent) => {
       if (touchYRef.current === null) return;
       const currentY = e.touches[0]?.clientY ?? touchYRef.current;
-      const delta = touchYRef.current - currentY;
+      const delta = touchYRef.current - currentY; // swipe up => positive => scroll down
       const engaged = lockedRef.current || tryEngage(delta);
       touchYRef.current = currentY;
       if (!engaged) return;
@@ -358,6 +385,9 @@ function ProblemStatement() {
       applyDelta(delta);
     };
 
+    // Keyboard scrolling (PageDown/Space/arrows) bypasses wheel/touch
+    // entirely in most browsers, so it needs its own handler to respect
+    // the same lock.
     const KEY_DELTA: Record<string, number> = {
       ArrowDown: PX_PER_WORD,
       PageDown: PX_PER_WORD * 3,
@@ -457,6 +487,9 @@ function HowItWorks() {
             ))}
           </ol>
 
+          {/* Real product visual: a browser-style frame around a static
+              preview of the app's own node language, instead of a fake
+              screenshot — so this panel can never drift from the real UI. */}
           <div className="relative rounded-[28px] p-3 shadow-[0_24px_60px_-20px_rgba(14,30,21,0.5)]" style={{ backgroundColor: 'var(--color-lp-forest-950)' }}>
             <div className="rounded-[20px] overflow-hidden p-6 sm:p-8" style={{ backgroundColor: 'var(--color-lp-trail-100)' }}>
               <p className="font-mono text-[11px] tracking-widest uppercase mb-6" style={{ color: 'var(--color-lp-forest-700)' }}>
@@ -567,13 +600,14 @@ function Journeys({ onJump }: { onJump: (id: string) => void }) {
           <p className="mt-5 font-body leading-relaxed max-w-md" style={{ color: 'var(--color-lp-ink-soft)' }}>
             Browse trails other students built for goals like yours, see exactly how they broke it down, and fork one as a starting point for your own.
           </p>
-          <Link
-            to="/journeys"
+          <button
+            type="button"
+            onClick={() => onJump('cta')}
             className="mt-7 inline-flex items-center gap-2 font-body font-semibold border-b-2 pb-1 hover:opacity-70 transition-opacity cursor-pointer"
             style={{ color: 'var(--color-lp-forest-700)', borderColor: 'var(--color-lp-forest-700)' }}
           >
             Browse journeys
-          </Link>
+          </button>
         </div>
 
         <div className="flex flex-col gap-5">
@@ -660,6 +694,65 @@ function CallToAction({ onSignUp }: { onSignUp: () => void }) {
   );
 }
 
+function Footer({ onJump }: { onJump: (id: string) => void }) {
+  return (
+    <footer className="border-t" style={{ backgroundColor: 'var(--color-lp-forest-950)', borderColor: 'rgba(247,241,225,0.1)' }}>
+      <div className="mx-auto max-w-6xl px-5 sm:px-8 py-14">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-10">
+          <div>
+            <button type="button" onClick={() => onJump('top')} className="flex items-center gap-2.5 cursor-pointer">
+              <span className="grid place-items-center w-9 h-9 rounded-lg p-1.5" style={{ backgroundColor: 'rgba(247,241,225,0.1)' }}>
+                <img src={strailLogo} alt="Strail" className="w-full h-full object-contain" />
+              </span>
+              <span className="font-display font-bold text-lg" style={{ color: 'var(--color-lp-cream-paper)' }}>Strail</span>
+            </button>
+            <p className="mt-3 font-body text-sm max-w-xs" style={{ color: 'rgba(231,242,227,0.6)' }}>
+              Stop overwhelm. Turn big goals into small steps.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-x-12 gap-y-8">
+            <div>
+              <p className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'rgba(231,242,227,0.4)' }}>Site</p>
+              <ul className="mt-3 space-y-2 font-body text-sm" style={{ color: 'rgba(231,242,227,0.7)' }}>
+                {NAV_LINKS.map((l) => (
+                  <li key={l.href}>
+                    <button type="button" onClick={() => onJump(l.href)} className="hover:opacity-80 transition-opacity cursor-pointer">{l.label}</button>
+                  </li>
+                ))}
+                <li>
+                  <Link to="/blog" className="hover:opacity-80 transition-opacity cursor-pointer">Blog</Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'rgba(231,242,227,0.4)' }}>Legal</p>
+              <ul className="mt-3 space-y-2 font-body text-sm" style={{ color: 'rgba(231,242,227,0.7)' }}>
+                <li><a href="#" className="hover:opacity-80 transition-opacity">Privacy Policy</a></li>
+                <li><a href="#" className="hover:opacity-80 transition-opacity">Terms &amp; Conditions</a></li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'rgba(231,242,227,0.4)' }}>Follow</p>
+              <ul className="mt-3 space-y-2 font-body text-sm" style={{ color: 'rgba(231,242,227,0.7)' }}>
+                <li>
+                  <a href="#" className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity">
+                    <Instagram className="w-4 h-4" /> Instagram
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-14 pt-6 border-t flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between" style={{ borderColor: 'rgba(247,241,225,0.1)' }}>
+          <p className="font-body text-xs" style={{ color: 'rgba(231,242,227,0.4)' }}>© {new Date().getFullYear()} Strail. Made for the ones juggling too much.</p>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
 export default function LandingPage({ onSignIn, onSignUp, onGuest, isGuestSubmitting }: LandingPageProps) {
   useScrollDepthTracking('Main Landing');
 
@@ -691,23 +784,6 @@ export default function LandingPage({ onSignIn, onSignUp, onGuest, isGuestSubmit
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // If we arrived here via SiteFooter's "About"/"Features"/etc links from
-  // a different page (e.g. clicked "Features" while on /privacy), scroll
-  // to that section once the sections have mounted, then clear the state
-  // so a later refresh or back/forward doesn't re-trigger it.
-  const location = useLocation();
-  const navigate = useNavigate();
-  useEffect(() => {
-    const scrollTo = (location.state as any)?.scrollTo;
-    if (!scrollTo) return;
-    const frame = window.requestAnimationFrame(() => {
-      document.getElementById(scrollTo)?.scrollIntoView({ behavior: 'smooth' });
-    });
-    navigate(location.pathname, { replace: true, state: {} });
-    return () => window.cancelAnimationFrame(frame);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   return (
     <div className="relative font-body overflow-x-hidden" style={{ backgroundColor: 'var(--color-lp-cream)' }}>
       <SideTrailNav activeIndex={activeIndex} onJump={jumpTo} />
@@ -720,7 +796,7 @@ export default function LandingPage({ onSignIn, onSignUp, onGuest, isGuestSubmit
         <Journeys onJump={jumpTo} />
         <CallToAction onSignUp={onSignUp} />
       </main>
-      <SiteFooter />
+      <Footer onJump={jumpTo} />
     </div>
   );
 }
