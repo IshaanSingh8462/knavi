@@ -1,17 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { Instagram } from 'lucide-react';
 import { useScrollDepthTracking } from '../lib/useScrollDepth';
-import {
-  ArrowRight,
-  Lock,
-  Check,
-  Instagram,
-  Sparkles,
-  CalendarClock,
-  Compass,
-  Flame,
-} from 'lucide-react';
-import strailLogo from '../assets/strail-logo.png';
 
 interface LandingPageProps {
   onSignIn: () => void;          // opens login mode on the auth card
@@ -20,435 +10,110 @@ interface LandingPageProps {
   isGuestSubmitting?: boolean;   // reflects App.tsx's guest-auth in-flight state
 }
 
-const SECTIONS = [
-  { id: 'top', label: 'Basecamp' },
-  { id: 'about', label: 'About' },
-  { id: 'how-it-works', label: 'How It Works' },
-  { id: 'features', label: 'Features' },
-  { id: 'journeys', label: 'Journeys' },
+// ============================================================================
+// Node shape math — every node on the trail uses the exact same rounded
+// hexagon + offset "wall" stack (the pseudo-3D puck effect), so it's pure
+// geometry computed once at module load rather than per render or per node.
+// ============================================================================
+type Pt = { x: number; y: number };
+
+function hexPoints(cx: number, cy: number, r: number): Pt[] {
+  const pts: Pt[] = [];
+  for (let i = 0; i < 6; i++) {
+    const angle = (Math.PI / 180) * (60 * i - 90); // pointy top & bottom
+    pts.push({ x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) });
+  }
+  return pts;
+}
+
+function roundedPolygonPath(points: Pt[], radius: number): string {
+  const n = points.length;
+  const d: string[] = [];
+  for (let i = 0; i < n; i++) {
+    const prev = points[(i - 1 + n) % n];
+    const curr = points[i];
+    const next = points[(i + 1) % n];
+
+    const v1x = prev.x - curr.x, v1y = prev.y - curr.y;
+    const v1len = Math.hypot(v1x, v1y);
+    const p1 = { x: curr.x + (v1x / v1len) * radius, y: curr.y + (v1y / v1len) * radius };
+
+    const v2x = next.x - curr.x, v2y = next.y - curr.y;
+    const v2len = Math.hypot(v2x, v2y);
+    const p2 = { x: curr.x + (v2x / v2len) * radius, y: curr.y + (v2y / v2len) * radius };
+
+    d.push((i === 0 ? 'M ' : 'L ') + p1.x.toFixed(2) + ' ' + p1.y.toFixed(2));
+    d.push('Q ' + curr.x.toFixed(2) + ' ' + curr.y.toFixed(2) + ' ' + p2.x.toFixed(2) + ' ' + p2.y.toFixed(2));
+  }
+  d.push('Z');
+  return d.join(' ');
+}
+
+const NODE_FRONT_PATH = roundedPolygonPath(hexPoints(50, 50, 46), 14);
+const NODE_WALL_PATHS: string[] = (() => {
+  const offsetX = -3, offsetY = 4, steps = 5;
+  const paths: string[] = [];
+  for (let i = steps; i >= 1; i--) {
+    const t = i / steps;
+    paths.push(roundedPolygonPath(hexPoints(50 + offsetX * t, 50 + offsetY * t, 46), 14));
+  }
+  return paths;
+})();
+
+/** Every node on the page renders through this — the gradient front face
+ *  with the stepped dark-green "wall" behind it that reads as a 3D puck. */
+function NodeGraphic() {
+  return (
+    <svg className="node" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+      <g>
+        {NODE_WALL_PATHS.map((d, i) => (
+          <path key={i} d={d} fill="#14311C" />
+        ))}
+      </g>
+      <path d={NODE_FRONT_PATH} fill="url(#lp2NodeFill)" />
+    </svg>
+  );
+}
+
+// ---- smooth bezier-through-points helpers. The vertical one is the same
+// technique Trail.tsx already uses for the real in-app trail; the
+// horizontal one is its mirror image, used for the background waves.
+function smoothPathVertical(points: Pt[]): string {
+  if (points.length === 0) return '';
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+  let d = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 1; i < points.length; i++) {
+    const p0 = points[i - 1], p1 = points[i];
+    const midY = (p0.y + p1.y) / 2;
+    d += ` C ${p0.x} ${midY}, ${p1.x} ${midY}, ${p1.x} ${p1.y}`;
+  }
+  return d;
+}
+
+function smoothPathHorizontal(points: Pt[]): string {
+  if (points.length === 0) return '';
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+  let d = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 1; i < points.length; i++) {
+    const p0 = points[i - 1], p1 = points[i];
+    const midX = (p0.x + p1.x) / 2;
+    d += ` C ${midX} ${p0.y}, ${midX} ${p1.y}, ${p1.x} ${p1.y}`;
+  }
+  return d;
+}
+
+const FEATURES = [
+  { title: 'AI trail-building', body: 'Describe a goal — Strail drafts and sequences actionable nodes dynamically.' },
+  { title: 'Protected time', body: 'Block off practice and rest before the week fills up without overwhelming yourself.' },
+  { title: 'Public journeys', body: 'Browse trails other students walked, see how they broke it down, and fork one.' },
+  { title: "Streaks that don't guilt you", body: 'Miss a day and the trail reshuffles gracefully — no shame, no reset.' },
 ];
 
-/** Small circular node-state badge — mirrors the real app's node language
- *  (locked / active / done) so the marketing page never invents a visual
- *  vocabulary the product doesn't already use. */
-function NodeBadge({ state, size = 40, ring = false }: { state: 'done' | 'active' | 'locked'; size?: number; ring?: boolean }) {
-  const fill = state === 'done' ? 'var(--color-lp-trail-600)' : state === 'active' ? 'var(--color-lp-gold-600)' : 'var(--color-lp-bark-300)';
-  return (
-    <span className="relative grid place-items-center shrink-0" style={{ width: size, height: size }}>
-      {ring && (
-        <span
-          className="absolute rounded-full border-2 animate-ping"
-          style={{ inset: -6, borderColor: 'var(--color-lp-gold-600)', animationDuration: '2.4s' }}
-        />
-      )}
-      <span
-        className="relative grid place-items-center rounded-full shadow-[0_2px_0_rgba(0,0,0,0.15)]"
-        style={{ width: size, height: size, backgroundColor: fill }}
-      >
-        {state === 'done' && <Check className="text-white" style={{ width: size * 0.5, height: size * 0.5 }} />}
-        {state === 'locked' && <Lock className="text-white" style={{ width: size * 0.4, height: size * 0.4 }} />}
-      </span>
-    </span>
-  );
-}
-
-/** Left-edge scroll progress rail — sections behind you read "done," the
- *  current one pulses "active," sections ahead read "locked." */
-function SideTrailNav({ activeIndex, onJump }: { activeIndex: number; onJump: (id: string) => void }) {
-  return (
-    <div className="hidden lg:flex flex-col fixed left-6 top-1/2 -translate-y-1/2 z-40">
-      {SECTIONS.map((s, i) => {
-        const state: 'done' | 'active' | 'locked' = i < activeIndex ? 'done' : i === activeIndex ? 'active' : 'locked';
-        return (
-          <div key={s.id} className="flex flex-col items-center">
-            <button
-              type="button"
-              onClick={() => onJump(s.id)}
-              aria-label={s.label}
-              className="group relative flex items-center cursor-pointer"
-            >
-              <div
-                className={`relative rounded-full grid place-items-center shrink-0 transition-transform ${
-                  state === 'locked' ? 'w-9 h-9 border-2 border-dashed' : 'w-11 h-11 border-[3px]'
-                } ${state === 'active' ? 'scale-110' : ''}`}
-                style={{
-                  borderColor: state === 'locked' ? 'var(--color-lp-bark-300)' : state === 'active' ? 'var(--color-lp-gold-600)' : 'var(--color-lp-trail-600)',
-                  backgroundColor: state === 'locked' ? 'var(--color-lp-cream-paper)' : state === 'active' ? 'var(--color-lp-gold-400)' : 'var(--color-lp-trail-300)',
-                }}
-              >
-                {state === 'locked' ? (
-                  <Lock className="w-3.5 h-3.5" style={{ color: 'var(--color-lp-ink-soft)' }} />
-                ) : state === 'done' ? (
-                  <Check className="w-4 h-4" style={{ color: 'var(--color-lp-forest-950)' }} />
-                ) : (
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--color-lp-forest-950)' }} />
-                )}
-              </div>
-              <span
-                className={`ml-3 text-[11px] font-mono uppercase tracking-widest whitespace-nowrap transition-opacity ${
-                  state === 'active' ? 'opacity-100 font-bold' : 'opacity-0 group-hover:opacity-100'
-                }`}
-                style={{ color: 'var(--color-lp-ink)' }}
-              >
-                {s.label}
-              </span>
-            </button>
-            {i < SECTIONS.length - 1 && <div className="w-[3px] h-8" style={{ backgroundColor: 'var(--color-lp-gold-600)', opacity: 0.4 }} />}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-const NAV_LINKS = [
-  { label: 'About', href: 'about' },
-  { label: 'How it works', href: 'how-it-works' },
-  { label: 'Features', href: 'features' },
-  { label: 'Journeys', href: 'journeys' },
+const JOURNEYS = [
+  { title: 'Robotics build season', body: '34 sequential milestones', nodes: '34 nodes' },
+  { title: 'Common App, start to submit', body: '21 manageable steps', nodes: '21 nodes' },
+  { title: 'Learn to solo a 12-bar blues', body: '16 practice sessions', nodes: '16 nodes' },
 ];
-
-function Header({ onJump, onSignUp }: { onJump: (id: string) => void; onSignUp: () => void }) {
-  const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12);
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
-  return (
-    <header
-      className={`fixed top-0 inset-x-0 z-50 transition-colors duration-300 ${
-        scrolled ? 'backdrop-blur-sm border-b' : 'border-b border-transparent'
-      }`}
-      style={{
-        backgroundColor: scrolled ? 'rgba(247,241,225,0.9)' : 'transparent',
-        borderColor: scrolled ? 'rgba(185,143,75,0.2)' : 'transparent',
-      }}
-    >
-      <nav className="mx-auto max-w-6xl px-5 sm:px-8 h-16 flex items-center justify-between">
-        <button type="button" onClick={() => onJump('top')} className="flex items-center gap-2.5 shrink-0 cursor-pointer">
-          <span className="grid place-items-center w-11 h-11 rounded-lg p-1.5" style={{ backgroundColor: 'var(--color-lp-forest-950)' }}>
-            <img src={strailLogo} alt="Strail" className="w-full h-full object-contain" />
-          </span>
-          <span className="font-display font-bold text-lg tracking-tight" style={{ color: 'var(--color-lp-ink)' }}>
-            Strail
-          </span>
-        </button>
-
-        <ul className="hidden md:flex items-center gap-8 font-body text-[15px]" style={{ color: 'var(--color-lp-ink-soft)' }}>
-          {NAV_LINKS.map((l) => (
-            <li key={l.href}>
-              <button type="button" onClick={() => onJump(l.href)} className="hover:opacity-70 transition-opacity cursor-pointer">
-                {l.label}
-              </button>
-            </li>
-          ))}
-          <li>
-            <Link to="/blog" className="hover:opacity-70 transition-opacity cursor-pointer">
-              Blog
-            </Link>
-          </li>
-        </ul>
-
-        <div className="hidden md:flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onSignUp}
-            className="inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 font-body font-semibold text-sm text-white hover:-translate-y-0.5 transition-all cursor-pointer"
-            style={{ backgroundColor: 'var(--color-lp-trail-600)' }}
-          >
-            Start your trail
-          </button>
-        </div>
-
-        <button
-          type="button"
-          className="md:hidden grid place-items-center w-11 h-11 rounded-lg border cursor-pointer"
-          style={{ borderColor: 'rgba(27,27,22,0.15)', color: 'var(--color-lp-ink)' }}
-          aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-          aria-expanded={menuOpen}
-          onClick={() => setMenuOpen((v) => !v)}
-        >
-          {menuOpen ? (
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 2L16 16M16 2L2 16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
-          ) : (
-            <svg width="18" height="14" viewBox="0 0 18 14" fill="none"><path d="M0 1H18M0 7H18M0 13H18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
-          )}
-        </button>
-      </nav>
-
-      {menuOpen && (
-        <div className="md:hidden border-b px-5 pb-6 pt-2" style={{ backgroundColor: 'var(--color-lp-cream)', borderColor: 'rgba(185,143,75,0.2)' }}>
-          <ul className="flex flex-col gap-1 font-body text-[15px]" style={{ color: 'var(--color-lp-ink)' }}>
-            {NAV_LINKS.map((l) => (
-              <li key={l.href} className="border-b" style={{ borderColor: 'rgba(27,27,22,0.05)' }}>
-                <button type="button" onClick={() => { onJump(l.href); setMenuOpen(false); }} className="block w-full text-left py-3 cursor-pointer">
-                  {l.label}
-                </button>
-              </li>
-            ))}
-            <li className="border-b" style={{ borderColor: 'rgba(27,27,22,0.05)' }}>
-              <Link to="/blog" onClick={() => setMenuOpen(false)} className="block w-full text-left py-3 cursor-pointer">
-                Blog
-              </Link>
-            </li>
-          </ul>
-          <button
-            type="button"
-            onClick={() => { onSignUp(); setMenuOpen(false); }}
-            className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-full text-white px-5 py-3 font-body font-semibold text-sm cursor-pointer"
-            style={{ backgroundColor: 'var(--color-lp-trail-600)' }}
-          >
-            Start your trail
-          </button>
-        </div>
-      )}
-    </header>
-  );
-}
-
-function Hero({ onSignUp, onSignIn, onGuest, isGuestSubmitting }: LandingPageProps) {
-  return (
-    <section id="top" className="relative overflow-hidden pt-32 pb-20 sm:pt-40 sm:pb-28" style={{ backgroundColor: 'var(--color-lp-cream)' }}>
-      <svg className="absolute inset-x-0 bottom-0 w-full h-[140px] sm:h-[200px]" viewBox="0 0 1440 200" preserveAspectRatio="none" aria-hidden="true">
-        <path d="M0 140 C 180 90, 340 170, 520 120 S 860 60, 1040 130 S 1300 100, 1440 140 V200 H0 Z" fill="var(--color-lp-trail-100)" />
-      </svg>
-
-      <div className="relative mx-auto max-w-6xl px-5 sm:px-8 grid lg:grid-cols-[1.15fr_0.85fr] gap-14 lg:gap-8 items-center">
-        <div>
-          <span
-            className="inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 font-mono text-[11px] tracking-widest uppercase"
-            style={{ borderColor: 'rgba(168,130,90,0.4)', backgroundColor: 'var(--color-lp-cream-paper)', color: 'var(--color-lp-bark-500)' }}
-          >
-            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--color-lp-trail-600)' }} />
-            For students doing too much
-          </span>
-
-          <h1
-            className="mt-6 font-display font-extrabold text-[2.6rem] leading-[1.06] tracking-tight sm:text-[3.4rem] lg:text-[3.75rem]"
-            style={{ color: 'var(--color-lp-ink)' }}
-          >
-            Turn big goals into
-            <br className="hidden sm:block" /> small, walkable steps.
-          </h1>
-
-          <p className="mt-6 max-w-md font-body text-lg leading-relaxed" style={{ color: 'var(--color-lp-ink-soft)' }}>
-            Strail breaks your goals, classes, and commitments into a trail of small steps — so overwhelm turns into a path you can actually walk, one node at a time.
-          </p>
-
-          <div className="mt-9 flex flex-wrap items-center gap-4">
-            <button
-              type="button"
-              onClick={onSignUp}
-              className="inline-flex items-center gap-2 rounded-full px-6 py-3.5 font-body font-semibold text-white shadow-[0_3px_0_#173722] hover:-translate-y-0.5 hover:shadow-[0_5px_0_#173722] transition-all cursor-pointer"
-              style={{ backgroundColor: 'var(--color-lp-trail-600)' }}
-            >
-              Start your trail
-              <ArrowRight className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={onSignIn}
-              className="font-body font-semibold border-b-2 pb-1 hover:opacity-70 transition-opacity cursor-pointer"
-              style={{ color: 'var(--color-lp-ink)', borderColor: 'var(--color-lp-gold-600)' }}
-            >
-              Sign in
-            </button>
-            <button
-              type="button"
-              onClick={onGuest}
-              disabled={isGuestSubmitting}
-              className={`font-body font-semibold text-sm underline transition-colors ${isGuestSubmitting ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:opacity-70'}`}
-              style={{ color: 'var(--color-lp-ink-soft)' }}
-            >
-              {isGuestSubmitting ? 'Entering...' : 'Browse as a guest'}
-            </button>
-          </div>
-
-          <div className="mt-12 flex flex-wrap items-center gap-5 font-mono text-[11px] uppercase tracking-wider" style={{ color: 'var(--color-lp-ink-faint)' }}>
-            <span>No mascots.</span>
-            <span className="w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--color-lp-ink-faint)', opacity: 0.5 }} />
-            <span>No streak-shaming.</span>
-            <span className="w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--color-lp-ink-faint)', opacity: 0.5 }} />
-            <span>Just a path.</span>
-          </div>
-        </div>
-
-        <div className="relative mx-auto lg:mx-0">
-          <div className="relative w-[280px] h-[280px] sm:w-[340px] sm:h-[340px]">
-            <svg viewBox="0 0 340 340" className="absolute inset-0">
-              <circle cx="170" cy="170" r="164" fill="var(--color-lp-gold-400)" opacity="0.5" />
-              <path d="M170 24 A146 146 0 1 1 169.9 24" fill="none" stroke="var(--color-lp-gold-600)" strokeWidth="3" strokeDasharray="1 10" strokeLinecap="round" />
-            </svg>
-            <div
-              className="absolute inset-[38px] rounded-full grid place-items-center p-10 shadow-[0_16px_40px_-12px_rgba(14,30,21,0.45)]"
-              style={{ backgroundColor: 'var(--color-lp-forest-950)' }}
-            >
-              <img src={strailLogo} alt="Strail logo — a winding green path shaped like an S" className="w-full h-full object-contain" />
-            </div>
-            <div className="absolute -top-2 -right-2 sm:top-0 sm:right-0"><NodeBadge state="done" size={46} /></div>
-            <div className="absolute bottom-8 -left-4 sm:bottom-10 sm:-left-6"><NodeBadge state="active" ring size={46} /></div>
-            <div className="absolute -bottom-2 right-10 sm:right-14"><NodeBadge state="locked" size={38} /></div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-const PROBLEM_TEXT =
-  "Every student is carrying five things at once — classes, clubs, a job, applications, a life outside all of it. The advice is always the same: break it down. But nobody says how, or where to start, or what to do when the list keeps growing faster than you can cross things off.";
-
-// Wheel/touch delta needed to reveal one more word once the section is pinned.
-const PX_PER_WORD = 45;
-
-/**
- * Scroll-locking word reveal. While this section is docked at the top of the
- * viewport and not yet fully revealed, wheel/touch input is captured and
- * converted into reveal progress instead of moving the page — so the
- * animation can never be scrolled past half-finished, and there's no dead
- * scroll runway left over afterwards (the section is exactly one viewport
- * tall; once revealed it releases the scroll and behaves like a normal
- * section).
- */
-function ProblemStatement() {
-  const sectionRef = useRef<HTMLElement>(null);
-  const words = useMemo(() => PROBLEM_TEXT.split(' '), []);
-  const [litCount, setLitCount] = useState(0);
-  const [locked, setLocked] = useState(false);
-
-  const progressRef = useRef(0); // fractional word progress, 0..words.length
-  const lockedRef = useRef(false);
-  const completedRef = useRef(false);
-  const touchYRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return;
-
-    const applyDelta = (delta: number) => {
-      progressRef.current = Math.min(words.length, Math.max(0, progressRef.current + delta / PX_PER_WORD));
-      setLitCount(Math.round(progressRef.current));
-
-      if (progressRef.current >= words.length) {
-        completedRef.current = true;
-        lockedRef.current = false;
-        setLocked(false);
-      } else if (progressRef.current <= 0 && delta < 0) {
-        // Scrolled all the way back to the start — release so the user can
-        // continue scrolling up into whatever comes before this section.
-        lockedRef.current = false;
-        setLocked(false);
-      }
-    };
-
-    const tryEngage = (deltaY: number) => {
-      if (completedRef.current || lockedRef.current) return lockedRef.current;
-      const rect = section.getBoundingClientRect();
-      const coveringViewport = rect.top <= 0 && rect.bottom > 0;
-      if (deltaY > 0 && coveringViewport) {
-        // Snap the section into perfect alignment with the top of the
-        // viewport before pinning, so a fast flick that overshoots the
-        // trigger point doesn't leave the section visibly offset.
-        if (rect.top !== 0) window.scrollBy(0, rect.top);
-        lockedRef.current = true;
-        setLocked(true);
-        return true;
-      }
-      return false;
-    };
-
-    const onWheel = (e: WheelEvent) => {
-      if (completedRef.current) return;
-      const engaged = lockedRef.current || tryEngage(e.deltaY);
-      if (!engaged) return;
-      e.preventDefault();
-      applyDelta(e.deltaY);
-    };
-
-    const onTouchStart = (e: TouchEvent) => {
-      touchYRef.current = e.touches[0]?.clientY ?? null;
-    };
-
-    const onTouchMove = (e: TouchEvent) => {
-      if (touchYRef.current === null) return;
-      const currentY = e.touches[0]?.clientY ?? touchYRef.current;
-      const delta = touchYRef.current - currentY; // swipe up => positive => scroll down
-      const engaged = lockedRef.current || tryEngage(delta);
-      touchYRef.current = currentY;
-      if (!engaged) return;
-      e.preventDefault();
-      applyDelta(delta);
-    };
-
-    // Keyboard scrolling (PageDown/Space/arrows) bypasses wheel/touch
-    // entirely in most browsers, so it needs its own handler to respect
-    // the same lock.
-    const KEY_DELTA: Record<string, number> = {
-      ArrowDown: PX_PER_WORD,
-      PageDown: PX_PER_WORD * 3,
-      ' ': PX_PER_WORD * 3,
-      ArrowUp: -PX_PER_WORD,
-      PageUp: -PX_PER_WORD * 3,
-    };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (completedRef.current || !(e.key in KEY_DELTA)) return;
-      const delta = KEY_DELTA[e.key];
-      const engaged = lockedRef.current || tryEngage(delta);
-      if (!engaged) return;
-      e.preventDefault();
-      applyDelta(delta);
-    };
-
-    window.addEventListener('wheel', onWheel, { passive: false });
-    window.addEventListener('touchstart', onTouchStart, { passive: true });
-    window.addEventListener('touchmove', onTouchMove, { passive: false });
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      window.removeEventListener('wheel', onWheel);
-      window.removeEventListener('touchstart', onTouchStart);
-      window.removeEventListener('touchmove', onTouchMove);
-      window.removeEventListener('keydown', onKeyDown);
-    };
-  }, [words.length]);
-
-  return (
-    <section
-      id="about"
-      ref={sectionRef}
-      className="relative h-screen flex flex-col justify-center px-5 sm:px-8 overflow-hidden"
-      style={{ backgroundColor: 'var(--color-lp-cream-deep)' }}
-    >
-      <div className="mx-auto max-w-3xl w-full">
-        <h2 className="sr-only">The problem Strail solves</h2>
-        <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--color-lp-bark-500)' }} aria-hidden="true">
-          The problem
-        </span>
-        <p className="mt-6 font-display font-semibold text-[1.6rem] leading-snug sm:text-[2.15rem] sm:leading-snug">
-          {words.map((w, i) => (
-            <span key={i} className="transition-colors duration-200" style={{ color: i < litCount ? 'var(--color-lp-ink)' : 'rgba(140,135,112,0.33)' }}>
-              {w}{' '}
-            </span>
-          ))}
-        </p>
-        <div className="mt-10 border-t pt-8" style={{ borderColor: 'rgba(168,130,90,0.3)' }}>
-          <p className="font-display font-bold text-xl sm:text-2xl leading-snug max-w-xl" style={{ color: 'var(--color-lp-forest-700)' }}>
-            Strail turns your goals into a path you can actually walk — one step, one node, at a time.
-          </p>
-        </div>
-      </div>
-      {locked && (
-        <span className="absolute bottom-8 left-1/2 -translate-x-1/2 font-mono text-[10px] tracking-widest uppercase animate-pulse" style={{ color: 'var(--color-lp-bark-500)' }}>
-          keep scrolling
-        </span>
-      )}
-    </section>
-  );
-}
 
 const HOW_STEPS = [
   { n: '01', title: 'Tell it your goal', body: "A class, a competition, a college app, a habit you keep dropping — say what you're aiming for, in your own words." },
@@ -457,346 +122,646 @@ const HOW_STEPS = [
   { n: '04', title: 'Your week protects itself', body: "Strail schedules nodes around the time you've already promised to practice, work, or rest." },
 ];
 
-function HowItWorks() {
-  return (
-    <section id="how-it-works" className="relative py-24 sm:py-32" style={{ backgroundColor: 'var(--color-lp-cream-deep)' }}>
-      <div className="mx-auto max-w-6xl px-5 sm:px-8">
-        <div className="max-w-xl">
-          <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--color-lp-bark-500)' }}>How it works</span>
-          <h2 className="mt-4 font-display font-extrabold text-3xl sm:text-4xl leading-tight" style={{ color: 'var(--color-lp-ink)' }}>
-            One node at a time, not one giant to-do list.
-          </h2>
-        </div>
-
-        <div className="mt-16 grid lg:grid-cols-[0.95fr_1.05fr] gap-16 items-start">
-          <ol className="space-y-10">
-            {HOW_STEPS.map((s, i) => (
-              <li key={s.n} className="relative pl-14">
-                <span
-                  className="absolute left-0 top-0 grid place-items-center w-10 h-10 rounded-full border font-mono text-xs"
-                  style={{ backgroundColor: 'var(--color-lp-cream-paper)', borderColor: 'rgba(185,143,75,0.4)', color: 'var(--color-lp-bark-500)' }}
-                >
-                  {s.n}
-                </span>
-                {i < HOW_STEPS.length - 1 && (
-                  <span className="absolute left-5 top-10 w-px h-[calc(100%+1.5rem)]" style={{ backgroundColor: 'rgba(185,143,75,0.3)' }} aria-hidden="true" />
-                )}
-                <h3 className="font-display font-bold text-lg" style={{ color: 'var(--color-lp-ink)' }}>{s.title}</h3>
-                <p className="mt-1.5 font-body leading-relaxed" style={{ color: 'var(--color-lp-ink-soft)' }}>{s.body}</p>
-              </li>
-            ))}
-          </ol>
-
-          {/* Real product visual: a browser-style frame around a static
-              preview of the app's own node language, instead of a fake
-              screenshot — so this panel can never drift from the real UI. */}
-          <div className="relative rounded-[28px] p-3 shadow-[0_24px_60px_-20px_rgba(14,30,21,0.5)]" style={{ backgroundColor: 'var(--color-lp-forest-950)' }}>
-            <div className="rounded-[20px] overflow-hidden p-6 sm:p-8" style={{ backgroundColor: 'var(--color-lp-trail-100)' }}>
-              <p className="font-mono text-[11px] tracking-widest uppercase mb-6" style={{ color: 'var(--color-lp-forest-700)' }}>
-                🗺️ Research Paper Trail
-              </p>
-              <div className="space-y-5">
-                {[
-                  { label: 'Pick a Topic', state: 'done' as const },
-                  { label: 'Gather Sources', state: 'done' as const },
-                  { label: 'Build an Outline', state: 'active' as const },
-                  { label: 'Write Introduction', state: 'locked' as const },
-                  { label: 'Draft & Submit', state: 'locked' as const },
-                ].map((n) => (
-                  <div key={n.label} className="flex items-center gap-4">
-                    <NodeBadge state={n.state} ring={n.state === 'active'} size={38} />
-                    <span
-                      className="font-body font-semibold text-[15px]"
-                      style={{ color: n.state === 'locked' ? 'var(--color-lp-ink-faint)' : 'var(--color-lp-ink)' }}
-                    >
-                      {n.label}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-const FEATURES = [
-  { icon: Sparkles, title: 'AI trail-building', body: "Describe a goal in plain language. Strail drafts the nodes, sizes each one to about 20 minutes, and orders them so nothing depends on a step you haven't done yet.", tag: 'Core', big: true },
-  { icon: CalendarClock, title: 'Protected time', body: "Block off practice, work, and rest before your week fills up with everyone else's requests for your time.", tag: 'Weekly setup', big: false },
-  { icon: Compass, title: 'Public journeys', body: 'Browse trails other students have walked — a robotics build season, a college app cycle — and fork one to fit your own goal.', tag: 'Community', big: false },
-  { icon: Flame, title: "Streaks that don't guilt you", body: 'Miss a day and Strail reshuffles the trail instead of resetting your progress to zero.', tag: 'Dashboard', big: false },
-];
-
-function FeatureIllustration() {
-  return (
-    <svg viewBox="0 0 160 160" className="w-full h-full">
-      <path d="M20 140 C 40 100, 20 80, 50 60 S 90 40, 90 20" fill="none" stroke="var(--color-lp-gold-600)" strokeWidth="4" strokeLinecap="round" strokeDasharray="0.1 12" />
-      <circle cx="20" cy="140" r="9" fill="var(--color-lp-trail-600)" />
-      <path d="M16 141l2.5 2.5L24 138" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      <circle cx="90" cy="20" r="11" fill="var(--color-lp-bark-300)" />
-      <path d="M91.5 13l-5 8h3.5l-1 6 5-8h-3.5l1-6z" fill="white" />
-    </svg>
-  );
-}
-
-function Features() {
-  return (
-    <section id="features" className="relative py-24 sm:py-32" style={{ backgroundColor: 'var(--color-lp-cream)' }}>
-      <div className="mx-auto max-w-6xl px-5 sm:px-8">
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
-          <div className="max-w-lg">
-            <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--color-lp-bark-500)' }}>Features</span>
-            <h2 className="mt-4 font-display font-extrabold text-3xl sm:text-4xl leading-tight" style={{ color: 'var(--color-lp-ink)' }}>
-              Everything is in service of the next step.
-            </h2>
-          </div>
-          <p className="max-w-xs font-body text-sm leading-relaxed" style={{ color: 'var(--color-lp-ink-soft)' }}>
-            No leaderboards, no mascots, no notifications designed to make you anxious. Just the tools that get a goal from idea to done.
-          </p>
-        </div>
-
-        <div className="mt-14 grid sm:grid-cols-2 gap-5">
-          {FEATURES.map((f) => (
-            <article
-              key={f.title}
-              className={`rounded-2xl border p-8 ${f.big ? 'sm:col-span-2 sm:flex sm:items-center sm:gap-10' : ''}`}
-              style={{ borderColor: 'rgba(168,130,90,0.25)', backgroundColor: 'var(--color-lp-cream-paper)' }}
-            >
-              <div className={f.big ? 'sm:flex-1' : ''}>
-                <div className="flex items-center gap-3 mb-3">
-                  <f.icon className="w-4 h-4" style={{ color: 'var(--color-lp-trail-600)' }} />
-                  <span className="font-mono text-[10px] tracking-widest uppercase" style={{ color: 'var(--color-lp-trail-600)' }}>{f.tag}</span>
-                </div>
-                <h3 className="font-display font-bold text-xl sm:text-2xl" style={{ color: 'var(--color-lp-ink)' }}>{f.title}</h3>
-                <p className="mt-3 font-body leading-relaxed max-w-md" style={{ color: 'var(--color-lp-ink-soft)' }}>{f.body}</p>
-              </div>
-              {f.big && <div className="hidden sm:block shrink-0 w-40 h-40"><FeatureIllustration /></div>}
-            </article>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-const JOURNEYS = [
-  { title: 'Robotics build season', steps: 34, forks: 128, rotate: '-rotate-2', accent: 'var(--color-lp-trail-600)' },
-  { title: 'Common App, start to submit', steps: 21, forks: 342, rotate: 'rotate-1', accent: 'var(--color-lp-gold-600)' },
-  { title: 'Learn to solo a 12-bar blues', steps: 16, forks: 76, rotate: '-rotate-1', accent: 'var(--color-lp-bark-500)' },
-];
-
-function Journeys({ onJump }: { onJump: (id: string) => void }) {
-  return (
-    <section id="journeys" className="relative py-24 sm:py-32" style={{ backgroundColor: 'var(--color-lp-cream-deep)' }}>
-      <div className="mx-auto max-w-6xl px-5 sm:px-8 grid lg:grid-cols-[0.85fr_1.15fr] gap-14 items-center">
-        <div>
-          <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--color-lp-bark-500)' }}>Public journeys</span>
-          <h2 className="mt-4 font-display font-extrabold text-3xl sm:text-4xl leading-tight" style={{ color: 'var(--color-lp-ink)' }}>
-            Someone's already walked
-            <br className="hidden sm:block" /> a trail like yours.
-          </h2>
-          <p className="mt-5 font-body leading-relaxed max-w-md" style={{ color: 'var(--color-lp-ink-soft)' }}>
-            Browse trails other students built for goals like yours, see exactly how they broke it down, and fork one as a starting point for your own.
-          </p>
-          <button
-            type="button"
-            onClick={() => onJump('cta')}
-            className="mt-7 inline-flex items-center gap-2 font-body font-semibold border-b-2 pb-1 hover:opacity-70 transition-opacity cursor-pointer"
-            style={{ color: 'var(--color-lp-forest-700)', borderColor: 'var(--color-lp-forest-700)' }}
-          >
-            Browse journeys
-          </button>
-        </div>
-
-        <div className="flex flex-col gap-5">
-          {JOURNEYS.map((j) => (
-            <div
-              key={j.title}
-              className={`rounded-2xl border p-6 shadow-[0_14px_30px_-18px_rgba(27,27,22,0.3)] hover:-translate-y-0.5 transition-transform ${j.rotate}`}
-              style={{ borderColor: 'rgba(168,130,90,0.25)', backgroundColor: 'var(--color-lp-cream-paper)' }}
-            >
-              <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: j.accent }} />
-              <h3 className="mt-3 font-display font-bold text-lg leading-snug" style={{ color: 'var(--color-lp-ink)' }}>{j.title}</h3>
-              <div className="mt-4 flex items-center gap-4 font-mono text-[11px]" style={{ color: 'var(--color-lp-ink-faint)' }}>
-                <span>{j.steps} nodes</span>
-                <span className="w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--color-lp-ink-faint)', opacity: 0.5 }} />
-                <span>{j.forks} forks</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-const SPARKLES = [
-  { left: '8%', top: '20%', size: 6, duration: 3.2 },
-  { left: '18%', top: '55%', size: 4, duration: 4.1 },
-  { left: '30%', top: '15%', size: 5, duration: 2.6 },
-  { left: '46%', top: '40%', size: 3, duration: 3.8 },
-  { left: '62%', top: '22%', size: 5, duration: 3.4 },
-  { left: '74%', top: '50%', size: 4, duration: 4.4 },
-  { left: '85%', top: '18%', size: 6, duration: 2.9 },
-  { left: '93%', top: '45%', size: 3, duration: 3.6 },
-  { left: '52%', top: '60%', size: 4, duration: 3.1 },
-  { left: '12%', top: '70%', size: 3, duration: 4.6 },
-];
-
-function CallToAction({ onSignUp }: { onSignUp: () => void }) {
-  return (
-    <section id="cta" className="relative overflow-hidden py-28 sm:py-36" style={{ backgroundColor: 'var(--color-lp-forest-950)' }}>
-      <div className="absolute inset-0" aria-hidden="true">
-        {SPARKLES.map((s, i) => (
-          <span
-            key={i}
-            className="absolute rounded-full animate-pulse"
-            style={{
-              left: s.left,
-              top: s.top,
-              width: s.size,
-              height: s.size,
-              backgroundColor: 'var(--color-lp-gold-400)',
-              opacity: 0.7,
-              animationDuration: `${s.duration}s`,
-              boxShadow: '0 0 8px 2px rgba(223,201,138,0.5)',
-            }}
-          />
-        ))}
-      </div>
-      <svg className="absolute inset-x-0 bottom-0 w-full h-[120px] sm:h-[160px]" viewBox="0 0 1440 160" preserveAspectRatio="none" aria-hidden="true">
-        <path
-          d="M0 160 L0 90 L60 40 L100 90 L140 55 L180 90 L220 30 L260 90 L310 60 L350 90 L400 45 L440 90 L500 70 L540 90 L600 35 L650 90 L700 60 L760 90 L820 40 L870 90 L930 65 L980 90 L1040 45 L1090 90 L1150 60 L1200 90 L1260 35 L1310 90 L1370 55 L1440 90 L1440 160 Z"
-          fill="var(--color-lp-forest-900)"
-        />
-      </svg>
-
-      <div className="relative mx-auto max-w-3xl px-5 sm:px-8 text-center">
-        <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--color-lp-trail-300)' }}>Ready when you are</span>
-        <h2 className="mt-5 font-display font-extrabold text-3xl sm:text-5xl leading-tight" style={{ color: 'var(--color-lp-cream-paper)' }}>Find your trail.</h2>
-        <p className="mt-5 font-body text-lg leading-relaxed max-w-xl mx-auto" style={{ color: 'rgba(231,242,227,0.8)' }}>
-          Free to start. No mascot, no guilt-trip notifications — just a clear next step, whenever you're ready to take it.
-        </p>
-        <div className="mt-9 flex flex-wrap items-center justify-center gap-4">
-          <button
-            type="button"
-            onClick={onSignUp}
-            className="inline-flex items-center gap-2 rounded-full px-7 py-3.5 font-body font-semibold text-white shadow-[0_3px_0_#173722] hover:-translate-y-0.5 hover:shadow-[0_5px_0_#173722] transition-all cursor-pointer"
-            style={{ backgroundColor: 'var(--color-lp-trail-600)' }}
-          >
-            Start your trail — it's free
-          </button>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function Footer({ onJump }: { onJump: (id: string) => void }) {
-  return (
-    <footer className="border-t" style={{ backgroundColor: 'var(--color-lp-forest-950)', borderColor: 'rgba(247,241,225,0.1)' }}>
-      <div className="mx-auto max-w-6xl px-5 sm:px-8 py-14">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-10">
-          <div>
-            <button type="button" onClick={() => onJump('top')} className="flex items-center gap-2.5 cursor-pointer">
-              <span className="grid place-items-center w-9 h-9 rounded-lg p-1.5" style={{ backgroundColor: 'rgba(247,241,225,0.1)' }}>
-                <img src={strailLogo} alt="Strail" className="w-full h-full object-contain" />
-              </span>
-              <span className="font-display font-bold text-lg" style={{ color: 'var(--color-lp-cream-paper)' }}>Strail</span>
-            </button>
-            <p className="mt-3 font-body text-sm max-w-xs" style={{ color: 'rgba(231,242,227,0.6)' }}>
-              Stop overwhelm. Turn big goals into small steps.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-x-12 gap-y-8">
-            <div>
-              <p className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'rgba(231,242,227,0.4)' }}>Site</p>
-              <ul className="mt-3 space-y-2 font-body text-sm" style={{ color: 'rgba(231,242,227,0.7)' }}>
-                {NAV_LINKS.map((l) => (
-                  <li key={l.href}>
-                    <button type="button" onClick={() => onJump(l.href)} className="hover:opacity-80 transition-opacity cursor-pointer">{l.label}</button>
-                  </li>
-                ))}
-                <li>
-                  <Link to="/blog" className="hover:opacity-80 transition-opacity cursor-pointer">Blog</Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <p className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'rgba(231,242,227,0.4)' }}>Legal</p>
-              <ul className="mt-3 space-y-2 font-body text-sm" style={{ color: 'rgba(231,242,227,0.7)' }}>
-                <li><a href="#" className="hover:opacity-80 transition-opacity">Privacy Policy</a></li>
-                <li><a href="#" className="hover:opacity-80 transition-opacity">Terms &amp; Conditions</a></li>
-              </ul>
-            </div>
-            <div>
-              <p className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'rgba(231,242,227,0.4)' }}>Follow</p>
-              <ul className="mt-3 space-y-2 font-body text-sm" style={{ color: 'rgba(231,242,227,0.7)' }}>
-                <li>
-                  <a href="#" className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity">
-                    <Instagram className="w-4 h-4" /> Instagram
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-14 pt-6 border-t flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between" style={{ borderColor: 'rgba(247,241,225,0.1)' }}>
-          <p className="font-body text-xs" style={{ color: 'rgba(231,242,227,0.4)' }}>© {new Date().getFullYear()} Strail. Made for the ones juggling too much.</p>
-        </div>
-      </div>
-    </footer>
-  );
-}
-
 export default function LandingPage({ onSignIn, onSignUp, onGuest, isGuestSubmitting }: LandingPageProps) {
   useScrollDepthTracking('Main Landing');
+  const location = useLocation();
 
-  const sectionElsRef = useRef<Record<string, HTMLElement | null>>({});
-  const [activeIndex, setActiveIndex] = useState(0);
-
+  // Honors SiteFooter's cross-page section jumps (About/How it works/
+  // Features/Journeys from Privacy/Terms) exactly the way it already
+  // expects: read location.state.scrollTo once, scroll there, clear it.
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-          const idx = SECTIONS.findIndex((s) => s.id === entry.target.id);
-          if (idx !== -1) setActiveIndex(idx);
-        });
-      },
-      { rootMargin: '-35% 0px -55% 0px', threshold: 0 }
-    );
-
-    SECTIONS.forEach((s) => {
-      const el = document.getElementById(s.id);
-      sectionElsRef.current[s.id] = el;
-      if (el) observer.observe(el);
-    });
-
-    return () => observer.disconnect();
+    const scrollTo = (location.state as { scrollTo?: string } | null)?.scrollTo;
+    if (scrollTo) {
+      const el = document.getElementById(scrollTo);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+      window.history.replaceState({}, '');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const jumpTo = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const waveSvgRef = useRef<SVGSVGElement>(null);
+  const trailSvgRef = useRef<SVGSVGElement>(null);
+  const bgPathRef = useRef<SVGPathElement>(null);
+  const fgPathRef = useRef<SVGPathElement>(null);
+
+  const heroNodeRef = useRef<HTMLDivElement>(null);
+  const problemNodeRef = useRef<HTMLDivElement>(null);
+  const howNodeRef = useRef<HTMLDivElement>(null);
+  const featuresNodeRef = useRef<HTMLDivElement>(null);
+  const journeysNodeRef = useRef<HTMLDivElement>(null);
+  const endNodeRef = useRef<HTMLDivElement>(null);
+
+  const problemSectionRef = useRef<HTMLElement>(null);
+  const journeysSectionRef = useRef<HTMLElement>(null);
+  const ctaSectionRef = useRef<HTMLElement>(null);
+  const problemBgRef = useRef<HTMLDivElement>(null);
+  const journeysBgRef = useRef<HTMLDivElement>(null);
+  const ctaBgRef = useRef<HTMLDivElement>(null);
+
+  const trailStartY = useRef(0);
+  const trailEndY = useRef(0);
+  const cachedLength = useRef(0);
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    const waveSvg = waveSvgRef.current;
+    const trailSvg = trailSvgRef.current;
+    const bgPath = bgPathRef.current;
+    const fgPath = fgPathRef.current;
+    if (!wrapper || !waveSvg || !trailSvg || !bgPath || !fgPath) return;
+
+    const nodeEls = [
+      heroNodeRef.current,
+      problemNodeRef.current,
+      howNodeRef.current,
+      featuresNodeRef.current,
+      journeysNodeRef.current,
+      endNodeRef.current,
+    ];
+    const sectionBgs = [
+      { el: problemBgRef.current, target: problemSectionRef.current },
+      { el: journeysBgRef.current, target: journeysSectionRef.current },
+      { el: ctaBgRef.current, target: ctaSectionRef.current },
+    ];
+
+    function nodeCenters(): Pt[] {
+      const wrapperRect = wrapper!.getBoundingClientRect();
+      return nodeEls.map((el) => {
+        const r = el!.getBoundingClientRect();
+        return {
+          x: r.left + r.width / 2 - wrapperRect.left,
+          y: r.top + r.height / 2 - wrapperRect.top,
+        };
+      });
+    }
+
+    function positionSectionBackgrounds() {
+      const wrapperRect = wrapper!.getBoundingClientRect();
+      sectionBgs.forEach(({ el, target }) => {
+        if (!el || !target) return;
+        const r = target.getBoundingClientRect();
+        el.style.top = r.top - wrapperRect.top + 'px';
+        el.style.height = r.height + 'px';
+      });
+    }
+
+    function updateWaveBackground() {
+      const docHeight = wrapper!.scrollHeight;
+      const width = wrapper!.clientWidth;
+      waveSvg!.setAttribute('width', String(width));
+      waveSvg!.setAttribute('height', String(docHeight));
+      waveSvg!.setAttribute('viewBox', `0 0 ${width} ${docHeight}`);
+
+      const spacing = 220;
+      const count = Math.ceil(docHeight / spacing) + 1;
+      const step = Math.max(36, width / 14);
+      let html = '';
+      for (let i = 0; i < count; i++) {
+        const baseY = i * spacing + 70;
+        const amplitude = 16 + (i % 3) * 6;
+        const wavelength = width / (1.6 + (i % 2) * 0.6);
+        const phase = (i % 2) * Math.PI;
+        const pts: Pt[] = [];
+        for (let x = 0; x <= width; x += step) {
+          pts.push({ x, y: baseY + amplitude * Math.sin((x / wavelength) * Math.PI * 2 + phase) });
+        }
+        if (pts[pts.length - 1].x < width) {
+          pts.push({ x: width, y: baseY + amplitude * Math.sin((width / wavelength) * Math.PI * 2 + phase) });
+        }
+        html += `<path d="${smoothPathHorizontal(pts)}"></path>`;
+      }
+      waveSvg!.innerHTML = html;
+    }
+
+    function updateTrailPath() {
+      const docHeight = wrapper!.scrollHeight;
+      trailSvg!.setAttribute('height', String(docHeight));
+      trailSvg!.setAttribute('width', String(wrapper!.clientWidth));
+      trailSvg!.setAttribute('viewBox', `0 0 ${wrapper!.clientWidth} ${docHeight}`);
+
+      positionSectionBackgrounds();
+
+      const pts = nodeCenters();
+      trailStartY.current = pts[0].y;
+      trailEndY.current = pts[pts.length - 1].y;
+      const d = smoothPathVertical(pts);
+      bgPath!.setAttribute('d', d);
+      fgPath!.setAttribute('d', d);
+      cachedLength.current = fgPath!.getTotalLength();
+      fgPath!.style.strokeDasharray = String(cachedLength.current);
+      updateScrollProgress();
+    }
+
+    function updateScrollProgress() {
+      if (!cachedLength.current) return;
+
+      const wrapperRect = wrapper!.getBoundingClientRect();
+      const viewportY = window.innerHeight / 2 - wrapperRect.top;
+
+      const points = nodeCenters();
+
+      const calibration = [
+        { y: points[0].y, progress: 0.00 },
+        { y: points[1].y, progress: 0.12 },
+        { y: points[2].y, progress: 0.35 },
+        { y: points[3].y, progress: 0.60 },
+        { y: points[4].y, progress: 0.83 },
+        { y: points[5].y, progress: 1.00 },
+      ];
+
+      let progress = 0;
+
+      for (let i = 0; i < calibration.length - 1; i++) {
+        const a = calibration[i];
+        const b = calibration[i + 1];
+
+        if (viewportY >= a.y && viewportY <= b.y) {
+          const t = (viewportY - a.y) / (b.y - a.y);
+          progress = a.progress + t * (b.progress - a.progress);
+          break;
+        }
+
+        if (viewportY > b.y) {
+          progress = b.progress;
+        }
+      }
+
+      progress = Math.min(1, Math.max(0, progress));
+
+      fgPath!.style.strokeDashoffset =
+        String(cachedLength.current * (1 - progress));
+    }
+
+    
+
+    let rafScroll: number | null = null;
+    const onScroll = () => {
+      if (rafScroll) return;
+      rafScroll = requestAnimationFrame(() => {
+        updateScrollProgress();
+        rafScroll = null;
+      });
+    };
+
+    let rafResize: number | null = null;
+    const onResize = () => {
+      if (rafResize) return;
+      rafResize = requestAnimationFrame(() => {
+        updateTrailPath();
+        updateWaveBackground();
+        rafResize = null;
+      });
+    };
+
+    updateTrailPath();
+    updateWaveBackground();
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onResize);
+    const resizeObserver = new ResizeObserver(onResize);
+    resizeObserver.observe(document.body);
+
+    let cancelled = false;
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => {
+        if (!cancelled) {
+          updateTrailPath();
+          updateWaveBackground();
+        }
+      });
+    }
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onResize);
+      resizeObserver.disconnect();
+      if (rafScroll) cancelAnimationFrame(rafScroll);
+      if (rafResize) cancelAnimationFrame(rafResize);
+    };
+  }, []);
 
   return (
-    <div className="relative font-body overflow-x-hidden" style={{ backgroundColor: 'var(--color-lp-cream)' }}>
-      <SideTrailNav activeIndex={activeIndex} onJump={jumpTo} />
-      <Header onJump={jumpTo} onSignUp={onSignUp} />
-      <main>
-        <Hero onSignUp={onSignUp} onSignIn={onSignIn} onGuest={onGuest} isGuestSubmitting={isGuestSubmitting} />
-        <ProblemStatement />
-        <HowItWorks />
-        <Features />
-        <Journeys onJump={jumpTo} />
-        <CallToAction onSignUp={onSignUp} />
-      </main>
-      <Footer onJump={jumpTo} />
+    <div className="lp2">
+      <style>{`
+        .lp2 { position: relative; background: var(--lp2-cream); color: var(--lp2-ink); font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; overflow-x: hidden;
+          --lp2-cream: #FAF8F5; --lp2-cream-deep: #F1EBDE; --lp2-card: rgba(250, 248, 245, 0.72); --lp2-card-border: rgba(200, 140, 34, 0.22);
+          --lp2-gold-1: #F8DA89; --lp2-gold-2: #EBB448; --lp2-gold-3: #C88C22;
+          --lp2-forest-1: #3B8E53; --lp2-forest-2: #265C35; --lp2-forest-3: #14311C;
+          --lp2-ink: #231F18; --lp2-ink-soft: rgba(35, 31, 24, 0.64); --lp2-ink-faint: rgba(35, 31, 24, 0.42);
+          --lp2-on-dark: #FAF8F5; --lp2-on-dark-soft: rgba(250, 248, 245, 0.66);
+        }
+        .lp2, .lp2 *, .lp2 *::before, .lp2 *::after { box-sizing: border-box; }
+        .lp2 a { color: inherit; }
+        .lp2 img { max-width: 100%; display: block; }
+        .lp2 button { font: inherit; }
+
+        .lp2-wrapper { position: relative; overflow: hidden;}
+        #lp2-wave-bg { position: absolute; inset: 0; z-index: 2; pointer-events: none; width: 100%; }
+        #lp2-wave-bg path { fill: none; stroke: rgba(107, 74, 46, 0.13); stroke-width: 1.2; }
+        #lp2-trail-svg { position: absolute; inset: 0; z-index: 10; pointer-events: none; width: 100%; }
+        #lp2-trail-svg path { fill: none; }
+        #lp2-trail-bg { stroke: var(--lp2-gold-2); stroke-opacity: 0.22; stroke-width: 26; stroke-linecap: round; }
+        #lp2-trail-fg { stroke: url(#lp2GoldStroke); stroke-width: 26; stroke-linecap: round; }
+
+        .lp2-section-bg { position: absolute; left: 0; width: 100%; z-index: 5; background: var(--lp2-cream-deep); pointer-events: none; overflow: hidden; }
+        .lp2-section-bg.lp2-bg-forest { background: linear-gradient(180deg, var(--lp2-cream-deep) 0%, var(--lp2-forest-3) 190px, var(--lp2-forest-3) 100%); }
+        .lp2-cta-mountains { position: absolute; left: 0; bottom: 0; width: 100%; height: clamp(170px, 26vw, 260px); display: block; }
+
+        .lp2-node-layer { position: relative; z-index: 20; }
+        .lp2-content-layer { position: relative; z-index: 30; }
+
+        .lp2-header { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; padding: 18px clamp(20px, 5vw, 56px); background: rgba(250, 248, 245, 0.86); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(35, 31, 24, 0.06); }
+        .lp2-logo { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: 0.06em; font-size: 18px; text-decoration: none; cursor: pointer; background: none; border: none; padding: 0; color: var(--lp2-ink); }
+        .lp2-logo-dot { width: 54px; height: 54px; border-radius: 50%; background: rgba(250, 248, 245, 0); flex-shrink: 0; }
+        .lp2-main-nav { display: flex; align-items: center; gap: 28px; font-size: 14.5px; }
+        .lp2-main-nav a { text-decoration: none; color: var(--lp2-ink-soft); cursor: pointer; }
+        .lp2-main-nav a:hover { color: var(--lp2-ink); }
+        .lp2-nav-signin { text-decoration: none; color: var(--lp2-ink); font-weight: 600; font-size: 14px; background: none; border: none; cursor: pointer; padding: 0; font-family: inherit; }
+        .lp2-nav-signin:hover { opacity: 0.7; }
+        .lp2-header-actions { display: flex; align-items: center; gap: 16px; }
+        @media (max-width: 860px) { .lp2-main-nav { display: none; } }
+
+        .lp2-pill {display: inline-flex; align-items: center; justify-content: center; padding: 11px 22px; border-radius: 999px; font-weight: 700; font-size: 14px; letter-spacing: 0.01em; border: none; cursor: pointer; text-decoration: none; font-family: inherit; transform: translateY(0); transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease, border-color 0.12s ease;}
+        .lp2-pill-dark { background: var(--lp2-forest-3); color: var(--lp2-on-dark); box-shadow: 0 4px 0 rgba(8, 21, 12, 0.9);}
+        .lp2-pill-dark:active {transform: translateY(4px); box-shadow: none;}
+        .lp2-pill-dark:hover { transform: translateY(2px); box-shadow: 0 2px 0 rgba(8, 21, 12, 0.9); }
+        .lp2-pill-light { background: var(--lp2-cream); color: var(--lp2-ink); box-shadow: 0 4px 0 rgba(180, 175, 165, 0.9);}
+        .lp2-pill-light:hover { transform: translateY(2px); box-shadow: 0 2px 0 rgba(180, 175, 165, 0.9);}
+        .lp2-pill-light:active {transform: translateY(4px); box-shadow: none;}
+        .lp2-pill-outline {background: transparent; color: var(--lp2-on-dark); border: 1.5px solid rgba(250,248,245,0.45); box-shadow: 0 4px 0 rgba(15, 41, 22, 0.9);}
+        .lp2-pill-outline:hover {border-color: rgba(250,248,245,0.8); transform: translateY(2px); box-shadow: 0 2px 0 rgba(15, 41, 22, 0.9);}
+        .lp2-pill-outline:active {transform: translateY(4px);box-shadow: none;}
+
+        .lp2 section { position: relative; padding: clamp(64px, 10vw, 120px) clamp(20px, 6vw, 64px); }
+        .lp2-section-inner { max-width: 1180px; margin: 0 auto; }
+        .lp2-eyebrow { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; color: var(--lp2-gold-3); }
+        .lp2-eyebrow-dark { color: var(--lp2-gold-1); }
+        .lp2-heading { margin: 14px 0 0; font-weight: 800; letter-spacing: -0.01em; font-size: clamp(28px, 4vw, 42px); line-height: 1.12; color: var(--lp2-ink); max-width: 16ch; }
+        .lp2-lede { margin: 18px 0 0; color: var(--lp2-ink-soft); font-size: 17px; line-height: 1.65; max-width: 46ch; }
+
+        .lp2 .node { display: block; width: 100%; aspect-ratio: 1 / 1; overflow: visible; filter: drop-shadow(0 20px 36px rgba(20, 49, 28, 0.32)); }
+
+        #lp2-hero-section { padding-top: clamp(12px, 2.5vw, 24px); padding-bottom: clamp(24px, 4vw, 40px); }
+        .lp2-hero-inner { max-width: 760px; margin: 0 auto; text-align: center; }
+        .lp2-hero-node-wrap { position: relative; margin: 0 auto; width: min(65vw, 500px); }
+        .lp2-hero-node-content { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8% 14% 12%; text-align: center; }
+        .lp2-hero-node-scrim { position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); width: 92%; height: 58%; background: radial-gradient(ellipse at center, rgba(15, 38, 23, 0.34) 0%, rgba(15, 38, 23, 0) 72%); z-index: -1; }
+        .lp2-hero-title { margin: 0; color: var(--lp2-on-dark); font-weight: 800; letter-spacing: -0.015em; font-size: clamp(26px, 4.6vw, 40px); line-height: 1.06; }
+        .lp2-hero-cta-row { margin-top: clamp(16px, 3vw, 26px); display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+        .lp2-hero-below { margin-top: clamp(16px, 2.4vw, 24px); }
+        .lp2-hero-below p { margin: 0; color: var(--lp2-ink-soft); font-size: 16px; line-height: 1.65; max-width: 46ch; margin-inline: auto; }
+        .lp2-guest-link { margin-top: 12px; background: none; border: none; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; color: var(--lp2-ink-faint); text-decoration: underline; display: block; margin-inline: auto; }
+        .lp2-guest-link:hover { color: var(--lp2-ink-soft); }
+        .lp2-guest-link:disabled { cursor: not-allowed; opacity: 0.6; }
+        .lp2-scroll-hint { position: absolute; left: 50%; top: 75%; transform: translate(-50%, -50%); font-family: 'JetBrains Mono', monospace; font-size: 11px; white-space: nowrap; letter-spacing: 0.14em; color: var(--lp2-on-dark-soft); display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .lp2-scroll-hint svg { animation: lp2-bob 1.8s ease-in-out infinite; }
+        @keyframes lp2-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
+
+        .lp2-split { display: grid; grid-template-columns: 220px 1fr; gap: clamp(24px, 5vw, 64px); align-items: center; }
+        .lp2-split.lp2-right { grid-template-columns: 1fr 220px; }
+        .lp2-split .lp2-node-col { display: flex; justify-content: center; }
+        .lp2-split.lp2-right .lp2-node-col { order: 2; }
+        .lp2-split.lp2-right .lp2-content-col { order: 1; }
+        .lp2-waypoint-node { position: relative; width: 168px; }
+        .lp2-waypoint-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 12%; }
+        .lp2-waypoint-label span { font-family: 'JetBrains Mono', monospace; font-size: 16.5px; font-weight: 700; letter-spacing: 0.08em; color: var(--lp2-on-dark); text-align: center; line-height: 1.3; }
+
+        .lp2-problem-quote { margin-top: 28px; padding-top: 22px; border-top: 1px solid rgba(200,140,34,0.28); font-weight: 700; line-height: 1.5; color: var(--lp2-forest-2); font-size: clamp(19px, 2.3vw, 24px); max-width: 38ch; }
+
+        .lp2-how-grid { margin-top: 36px; display: grid; grid-template-columns: 0.95fr 1.05fr; gap: clamp(24px, 4vw, 44px); align-items: start; }
+        .lp2-how-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 24px; }
+        .lp2-how-steps li { position: relative; padding-left: 46px; }
+        .lp2-step-num { position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 50%; border: 1px solid rgba(200,140,34,0.4); background: var(--lp2-cream); color: var(--lp2-gold-3); font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; display: grid; place-items: center; }
+        .lp2-how-steps h3 { margin: 0; font-size: 16px; font-weight: 700; }
+        .lp2-how-steps p { margin: 4px 0 0; font-size: 14px; color: var(--lp2-ink-soft); line-height: 1.6; }
+        .lp2-laptop-screen { width: 90%; margin: 0 auto; background: rgba(84, 83, 80, 0.5); border: 7px solid rgba(24, 24, 24, 0.72); border-radius: 14px 14px 4px 4px; padding: 22px 22px 26px; box-shadow: 0 22px 44px -20px rgba(20,49,28,0.45); }
+        .lp2-laptop-base { height: 12px; margin: 0 auto; width: 92%; background: linear-gradient(180deg, rgba(29, 84, 25, 1), rgba(16, 47, 14, 1)); border-radius: 0 0 10px 10px; }
+        .lp2-laptop-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.12em; color: var(--lp2-gold-1); text-transform: uppercase; margin: 0 0 16px; }
+        .lp2-mini-node-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+        .lp2-mini-node-row:last-child { margin-bottom: 0; }
+        .lp2-mini-dot { flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; }
+        .lp2-mini-dot.lp2-complete { background: linear-gradient(135deg, rgba(47, 139, 40, 1), rgba(25, 72, 21, 1)); }
+        .lp2-mini-dot.lp2-active { background: var(--lp2-gold-1); box-shadow: 0 0 0 3px rgba(3, 92, 6, 0.28); }
+        .lp2-mini-dot.lp2-locked { border: 1.5px dashed rgba(250,248,245,0.38); }
+        .lp2-mini-node-row .lp2-mini-label { font-size: 13.5px; color: var(--lp2-on-dark); font-weight: 600; }
+        .lp2-mini-node-row.lp2-locked .lp2-mini-label { color: var(--lp2-on-dark-soft); font-weight: 500; }
+
+        .lp2-card-grid { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .lp2-card { padding: 26px 24px; border-radius: 20px; background: var(--lp2-card); border: 1px solid var(--lp2-card-border); backdrop-filter: blur(12px); transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease; }
+        .lp2-card:hover { transform: translateY(-3px); border-color: rgba(200,140,34,0.5); box-shadow: 0 16px 30px -20px rgba(20,49,28,0.35); }
+        .lp2-card h3 { margin: 0; font-size: 17px; font-weight: 700; }
+        .lp2-card p { margin: 8px 0 0; font-size: 14.5px; line-height: 1.6; color: var(--lp2-ink-soft); }
+
+        .lp2-journey-list { margin-top: 32px; display: flex; flex-direction: column; gap: 12px; }
+        .lp2-journey-card { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 22px; border-radius: 18px; background: var(--lp2-card); border: 1px solid var(--lp2-card-border); backdrop-filter: blur(12px); transition: transform 0.2s ease, border-color 0.2s ease; }
+        .lp2-journey-card:hover { transform: translateY(-2px); border-color: rgba(200,140,34,0.5); }
+        .lp2-journey-card h3 { margin: 0 0 4px; font-size: 16px; font-weight: 700; }
+        .lp2-journey-card p { margin: 0; font-size: 13.5px; color: var(--lp2-ink-soft); }
+        .lp2-node-count { flex-shrink: 0; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; color: var(--lp2-gold-3); background: rgba(235, 180, 72, 0.14); padding: 7px 14px; border-radius: 999px; white-space: nowrap; }
+
+        #lp2-cta-section { overflow: hidden; }
+        #lp2-cta-section .lp2-eyebrow { display: block; text-align: center; }
+        .lp2-end-below { margin-top: clamp(18px, 2.6vw, 26px); text-align: center; }
+        .lp2-end-below p { margin: 0; color: var(--lp2-on-dark-soft); font-size: 16px; line-height: 1.65; max-width: 46ch; margin-inline: auto; }
+        .lp2-sparkle { position: absolute; border-radius: 50%; background: var(--lp2-gold-1); box-shadow: 0 0 8px 2px rgba(248, 218, 137, 0.4); animation: lp2-sparkle-pulse 3s ease-in-out infinite; }
+        @keyframes lp2-sparkle-pulse { 0%, 100% { opacity: 0.2; } 50% { opacity: 0.85; } }
+
+        .lp2-footer { background: var(--lp2-forest-3); color: rgba(250, 248, 245, 0.7); padding: 56px clamp(20px, 6vw, 64px) 28px; }
+        .lp2-footer-grid { max-width: 1180px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 40px; }
+        .lp2-footer-brand { display: flex; align-items: center; gap: 10px; font-weight: 800; color: var(--lp2-on-dark); text-decoration: none; font-size: 16px; background: none; border: none; cursor: pointer; padding: 0; font-family: inherit; }
+        .lp2-footer-tagline { margin: 10px 0 0; font-size: 13.5px; max-width: 26ch; color: rgba(250,248,245,0.55); }
+        .lp2-footer-cols { display: flex; flex-wrap: wrap; gap: 44px; }
+        .lp2-footer-col p { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.12em; color: rgba(250,248,245,0.4); text-transform: uppercase; margin: 0 0 12px; }
+        .lp2-footer-col ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; font-size: 14px; }
+        .lp2-footer-col a, .lp2-footer-col button { text-decoration: none; color: inherit; background: none; border: none; cursor: pointer; padding: 0; font-size: inherit; font-family: inherit; text-align: left; }
+        .lp2-footer-col a:hover, .lp2-footer-col button:hover { opacity: 0.8; }
+        .lp2-footer-bottom { max-width: 1180px; margin: 40px auto 0; padding-top: 20px; border-top: 1px solid rgba(250,248,245,0.1); font-size: 12px; color: rgba(250,248,245,0.4); }
+
+        @media (max-width: 760px) {
+          .lp2-split, .lp2-split.lp2-right { grid-template-columns: 1fr; }
+          .lp2-split .lp2-node-col, .lp2-split.lp2-right .lp2-node-col { order: -1; }
+          .lp2-waypoint-node { width: 128px; }
+          .lp2-card-grid { grid-template-columns: 1fr; }
+          .lp2-how-grid { grid-template-columns: 1fr; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .lp2 *, .lp2 *::before, .lp2 *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+        }
+      `}</style>
+
+      <header className="lp2-header">
+        <a className="lp2-logo" href="#top">
+          <img
+            className="lp2-logo-dot"
+            src="/strail-logo.png"
+            alt=""
+          /> STRAIL
+        </a>
+        <nav className="lp2-main-nav">
+          <a href="#about">About</a>
+          <a href="#how-it-works">How it works</a>
+          <a href="#features">Features</a>
+          <a href="#journeys">Journeys</a>
+          <Link to="/blog">Blog</Link>
+        </nav>
+        <div className="lp2-header-actions">
+          <button type="button" className="lp2-nav-signin" onClick={onSignIn}>Sign in</button>
+          <button type="button" className="lp2-pill lp2-pill-dark" onClick={onSignUp}>Get started</button>
+        </div>
+      </header>
+
+      <div className="lp2-wrapper" ref={wrapperRef}>
+        <svg ref={waveSvgRef} id="lp2-wave-bg" xmlns="http://www.w3.org/2000/svg" />
+
+        <svg ref={trailSvgRef} id="lp2-trail-svg" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="lp2GoldStroke" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#F8DA89" />
+              <stop offset="55%" stopColor="#EBB448" />
+              <stop offset="100%" stopColor="#C88C22" />
+            </linearGradient>
+            <linearGradient id="lp2NodeFill" x1="0.15" y1="0" x2="0.85" y2="1">
+              <stop offset="0%" stopColor="#3B8E53" />
+              <stop offset="55%" stopColor="#265C35" />
+              <stop offset="100%" stopColor="#14311C" />
+            </linearGradient>
+          </defs>
+          <path ref={bgPathRef} id="lp2-trail-bg" d="" />
+          <path ref={fgPathRef} id="lp2-trail-fg" d="" />
+        </svg>
+
+        <div className="lp2-section-bg" ref={problemBgRef} aria-hidden="true" />
+        <div className="lp2-section-bg" ref={journeysBgRef} aria-hidden="true" />
+        <div className="lp2-section-bg lp2-bg-forest" ref={ctaBgRef} aria-hidden="true">
+          <svg className="lp2-cta-mountains" viewBox="0 0 1440 260" preserveAspectRatio="none">
+            <path d="M0 260 L0 170 L120 60 L230 150 L340 40 L460 160 L600 70 L760 180 L900 50 L1080 170 L1250 90 L1440 200 L1440 260 Z" fill="#0e2214ff" />
+            <path d="M0 260 L0 210 Q180 150 360 200 T720 190 T1080 205 T1440 195 L1440 260 Z" fill="#08150cff" />
+          </svg>
+        </div>
+
+        <main className="lp2-content-layer">
+          {/* ================= HERO ================= */}
+          <section id="top" style={{ paddingTop: 'clamp(12px, 2.5vw, 24px)', paddingBottom: 'clamp(24px, 4vw, 40px)' }}>
+            <div className="lp2-hero-inner">
+              <div className="lp2-hero-node-wrap lp2-node-layer" ref={heroNodeRef}>
+                <NodeGraphic />
+                <div className="lp2-hero-node-content">
+                  <div className="lp2-hero-node-scrim" />
+                  <h1 className="lp2-hero-title">One step at a time.</h1>
+                  <div className="lp2-hero-cta-row">
+                    <button type="button" className="lp2-pill lp2-pill-light" onClick={onSignUp}>Start your Trail</button>
+                    <a className="lp2-pill lp2-pill-outline" onClick={onGuest}>Try as Guest</a>
+                  </div>
+                </div>
+                <div className="lp2-scroll-hint">
+                  <span>Scroll to follow the trail</span>
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1 3.5 5 7.5 9 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </div>
+              </div>
+
+              <div className="lp2-hero-below">
+              </div>
+            </div>
+          </section>
+
+          {/* ================= PROBLEM ================= */}
+          <section id="about" ref={problemSectionRef}>
+            <div className="lp2-section-inner">
+              <div className="lp2-split">
+                <div className="lp2-node-col lp2-node-layer">
+                  <div className="lp2-waypoint-node" ref={problemNodeRef}>
+                    <NodeGraphic />
+                    <div className="lp2-waypoint-label"><span>Problem</span></div>
+                  </div>
+                </div>
+                <div className="lp2-content-col">
+                  <span className="lp2-eyebrow"></span>
+                  <h2 className="lp2-heading">Every student is carrying five things at once.</h2>
+                  <p className="lp2-lede">Classes, clubs, a job, applications, a life outside all of it. The advice is always the same: break it down. But nobody says how, or where to start, or what to do when the list keeps growing faster than you can cross things off.</p>
+                  <p className="lp2-problem-quote">Strail turns your goals into a path you can actually walk — one step, one node, at a time.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ================= HOW IT WORKS ================= */}
+          <section id="how-it-works">
+            <div className="lp2-section-inner">
+              <div className="lp2-split lp2-right">
+                <div className="lp2-content-col">
+                  <span className="lp2-eyebrow"></span>
+                  <h2 className="lp2-heading">One node at a time, not one giant to-do list.</h2>
+                  <div className="lp2-how-grid">
+                    <ol className="lp2-how-steps">
+                      {HOW_STEPS.map((s) => (
+                        <li key={s.n}>
+                          <span className="lp2-step-num">{s.n}</span>
+                          <h3>{s.title}</h3>
+                          <p>{s.body}</p>
+                        </li>
+                      ))}
+                    </ol>
+
+                    <div>
+                      <div className="lp2-laptop-screen">
+                        <p className="lp2-laptop-label">🗺️ Research Paper Trail</p>
+                        <div className="lp2-mini-node-row"><span className="lp2-mini-dot lp2-complete" /><span className="lp2-mini-label">Pick a Topic</span></div>
+                        <div className="lp2-mini-node-row"><span className="lp2-mini-dot lp2-complete" /><span className="lp2-mini-label">Gather Sources</span></div>
+                        <div className="lp2-mini-node-row"><span className="lp2-mini-dot lp2-active" /><span className="lp2-mini-label">Build an Outline</span></div>
+                        <div className="lp2-mini-node-row lp2-locked"><span className="lp2-mini-dot lp2-locked" /><span className="lp2-mini-label">Write Introduction</span></div>
+                        <div className="lp2-mini-node-row lp2-locked"><span className="lp2-mini-dot lp2-locked" /><span className="lp2-mini-label">Draft &amp; Submit</span></div>
+                      </div>
+                      <div className="lp2-laptop-base" />
+                    </div>
+                  </div>
+                </div>
+                <div className="lp2-node-col lp2-node-layer">
+                  <div className="lp2-waypoint-node" ref={howNodeRef}>
+                    <NodeGraphic />
+                    <div className="lp2-waypoint-label"><span>How It<br />Works</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ================= FEATURES ================= */}
+          <section id="features">
+            <div className="lp2-section-inner">
+              <div className="lp2-split">
+                <div className="lp2-node-col lp2-node-layer">
+                  <div className="lp2-waypoint-node" ref={featuresNodeRef}>
+                    <NodeGraphic />
+                    <div className="lp2-waypoint-label"><span>Features</span></div>
+                  </div>
+                </div>
+                <div className="lp2-content-col">
+                  <span className="lp2-eyebrow"></span>
+                  <h2 className="lp2-heading">Everything is in service of the next step.</h2>
+                  <p className="lp2-lede">No leaderboards, no mascots, no notifications designed to make you anxious. Just the tools that get a goal from idea to done.</p>
+                  <div className="lp2-card-grid">
+                    {FEATURES.map((f) => (
+                      <div className="lp2-card" key={f.title}>
+                        <h3>{f.title}</h3>
+                        <p>{f.body}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ================= PUBLIC JOURNEYS ================= */}
+          <section id="journeys" ref={journeysSectionRef}>
+            <div className="lp2-section-inner">
+              <div className="lp2-split lp2-right">
+                <div className="lp2-content-col">
+                  <span className="lp2-eyebrow"></span>
+                  <h2 className="lp2-heading">Someone's already walked a trail like yours.</h2>
+                  <p className="lp2-lede">Browse trails other students built for goals like yours, see exactly how they broke it down, and fork one as a starting point for your own.</p>
+                  <div className="lp2-journey-list">
+                    {JOURNEYS.map((j) => (
+                      <div className="lp2-journey-card" key={j.title}>
+                        <div><h3>{j.title}</h3><p>{j.body}</p></div>
+                        <span className="lp2-node-count">{j.nodes}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="lp2-node-col lp2-node-layer">
+                  <div className="lp2-waypoint-node" ref={journeysNodeRef}>
+                    <NodeGraphic />
+                    <div className="lp2-waypoint-label"><span>Public<br />Journeys</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ================= CTA / END NODE ================= */}
+          <section id="cta" ref={ctaSectionRef}>
+            {[
+              { left: '8%', top: '20%', size: 6, dur: '3.2s' },
+              { left: '18%', top: '55%', size: 4, dur: '4.1s' },
+              { left: '30%', top: '15%', size: 5, dur: '2.6s' },
+              { left: '46%', top: '40%', size: 3, dur: '3.8s' },
+              { left: '62%', top: '22%', size: 5, dur: '3.4s' },
+              { left: '74%', top: '50%', size: 4, dur: '4.4s' },
+              { left: '85%', top: '18%', size: 6, dur: '2.9s' },
+              { left: '93%', top: '45%', size: 3, dur: '3.6s' },
+              { left: '52%', top: '64%', size: 4, dur: '3.1s' },
+              { left: '12%', top: '74%', size: 3, dur: '4.6s' },
+            ].map((s, i) => (
+              <div
+                key={i}
+                className="lp2-sparkle"
+                style={{ left: s.left, top: s.top, width: s.size, height: s.size, animationDuration: s.dur }}
+              />
+            ))}
+
+            <div className="lp2-hero-inner">
+              <span className="lp2-eyebrow lp2-eyebrow-dark"></span>
+              <div className="lp2-hero-node-wrap lp2-node-layer" ref={endNodeRef} style={{ marginTop: 22 }}>
+                <NodeGraphic />
+                <div className="lp2-hero-node-content">
+                  <div className="lp2-hero-node-scrim" />
+                  <h1 className="lp2-hero-title">Find Your Trail</h1>
+                  <div className="lp2-hero-cta-row">
+                    <button type="button" className="lp2-pill lp2-pill-light" onClick={onSignUp}>Start your Trail — it's free</button>
+                  </div>
+                </div>
+              </div>
+              <div className="lp2-end-below">
+                <p>Free to start. No mascot, no guilt-trip notifications — just a clear next step, whenever you're ready to take it.</p>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+
+      <footer className="lp2-footer">
+        <div className="lp2-footer-grid">
+          <div>
+            <a className="lp2-logo" href="#top">
+              <img
+                className="lp2-logo-dot"
+                src="/strail-logo.png"
+                alt=""
+              /> STRAIL
+            </a>
+            <p className="lp2-footer-tagline">Stop overwhelm. Turn big goals into small steps.</p>
+          </div>
+          <div className="lp2-footer-cols">
+            <div className="lp2-footer-col">
+              <p>Site</p>
+              <ul>
+                <li><a href="#about">About</a></li>
+                <li><a href="#how-it-works">How it works</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#journeys">Journeys</a></li>
+                <li><Link to="/blog">Blog</Link></li>
+              </ul>
+            </div>
+            <div className="lp2-footer-col">
+              <p>Legal</p>
+              <ul>
+                <li><Link to="/privacy">Privacy Policy</Link></li>
+                <li><Link to="/terms">Terms &amp; Conditions</Link></li>
+              </ul>
+            </div>
+            <div className="lp2-footer-col">
+              <p>Follow</p>
+              <ul>
+                <li><a href="https://www.instagram.com/getstrail/" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Instagram size={14} /> Instagram</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div className="lp2-footer-bottom">© {new Date().getFullYear()} Strail. Made for the ones juggling too much.</div>
+      </footer>
     </div>
   );
 }
