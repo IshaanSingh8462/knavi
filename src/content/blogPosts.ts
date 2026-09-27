@@ -48,11 +48,11 @@ export const blogPosts: BlogPost[] = [
     author: 'The Strail Team',
     tags: ['founder story'],
     banner: {
-      src: '/public/blog-images/why-i-built-strail/banner.png',
+      src: '/blog-images/why-i-built-strail/banner.png',
       alt: 'A winding trail through a green forest, viewed from the trailhead',
     },
     midImage: {
-      src: '/public/blog-images/why-i-built-strail/mid.png',
+      src: '/blog-images/why-i-built-strail/midImage.png',
       alt: 'A cluttered desk with sticky notes and an open notebook',
       caption: 'The actual state of my desk during AP season, for reference.',
     },
@@ -75,11 +75,11 @@ export const blogPosts: BlogPost[] = [
     author: 'The Strail Team',
     tags: ['task paralysis', 'study skills'],
     banner: {
-      src: '/public/blog-images/what-is-task-paralysis/banner.png',
+      src: '/blog-images/what-is-task-paralysis/banner.png',
       alt: 'A student sitting at a desk, hands on head, looking at a blank page',
     },
     midImage: {
-      src: '#',
+      src: '/blog-images/what-is-task-paralysis/midImage.png',
       alt: 'A short, simple checklist on a notepad',
       caption: 'Small, specific, and finishable — the opposite of a wall of a task.',
     },
@@ -102,11 +102,11 @@ export const blogPosts: BlogPost[] = [
     author: 'The Strail Team',
     tags: ['study skills', 'how-to'],
     banner: {
-      src: '/public/blog-images/guide-to-breaking-down-your-tasks/banner.png',
+      src: '/blog-images/guide-to-breaking-down-your-tasks/banner.png',
       alt: 'A trail map pinned to a corkboard with a route marked in string',
     },
     midImage: {
-      src: '/public/blog-images/guide-to-breaking-down-your-tasks/mid.png',
+      src: '/blog-images/guide-to-breaking-down-your-tasks/midImage.png',
       alt: 'Numbered index cards laid out in a row on a table',
       caption: 'Each card should be small enough to finish in one sitting.',
     },
