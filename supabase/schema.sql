@@ -122,21 +122,21 @@ create policy "owner full access" on public.tasks
 -- read a task once its owner has flipped it public. This is additive to
 -- the owner policy above; Postgres OR's permissive policies together, so
 -- it never weakens the owner-only guarantee for private tasks.
-drop policy if exists "public read published tasks" on public.tasks;
+/*drop policy if exists "public read published tasks" on public.tasks;
 create policy "public read published tasks" on public.tasks
-  for select using (is_public = true);
+  for select using (is_public = true);*/
 
 drop policy if exists "owner full access" on public.levels;
 create policy "owner full access" on public.levels
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
-drop policy if exists "public read published task levels" on public.levels;
+/*drop policy if exists "public read published task levels" on public.levels;
 create policy "public read published task levels" on public.levels
   for select using (
     task_id is not null and exists (
       select 1 from public.tasks t where t.id = levels.task_id and t.is_public = true
     )
-  );
+  );*/
 
 drop policy if exists "owner full access" on public.streaks;
 create policy "owner full access" on public.streaks
@@ -387,3 +387,116 @@ alter default privileges in schema public
   grant select, insert, update, delete on tables to authenticated;
 alter default privileges in schema public
   grant execute on functions to authenticated;
+
+
+
+--New Edits--
+-- Stop exposing live tasks/levels publicly
+drop policy if exists "public read published tasks" on public.tasks;
+drop policy if exists "public read published task levels" on public.levels;
+
+-- Snapshot tables: what the gallery actually reads
+create table if not exists public.published_journeys (
+  id                 uuid primary key default gen_random_uuid(),
+  owner_id           uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  source_task_id     uuid not null unique references public.tasks(id) on delete cascade,
+  title              text not null,
+  subject            text,
+  branch             text not null check (branch in ('academic', 'activity', 'light', 'custom')),
+  estimated_minutes  integer,
+  author_name        text,
+  created_at         timestamptz not null default now()
+);
+
+create table if not exists public.published_journey_levels (
+  id                 uuid primary key default gen_random_uuid(),
+  journey_id         uuid not null references public.published_journeys(id) on delete cascade,
+  title              text not null,
+  description        text,
+  estimated_minutes  integer not null,
+  branch_order       integer not null
+);
+
+create index if not exists idx_pj_levels_journey on public.published_journey_levels(journey_id);
+
+alter table public.published_journeys       enable row level security;
+alter table public.published_journey_levels enable row level security;
+
+drop policy if exists "anyone signed in can read" on public.published_journeys;
+create policy "anyone signed in can read" on public.published_journeys
+  for select using (true);
+drop policy if exists "owner manages" on public.published_journeys;
+create policy "owner manages" on public.published_journeys
+  for all using (auth.uid() = owner_id) with check (auth.uid() = owner_id);
+
+drop policy if exists "anyone signed in can read" on public.published_journey_levels;
+create policy "anyone signed in can read" on public.published_journey_levels
+  for select using (true);
+drop policy if exists "owner manages" on public.published_journey_levels;
+create policy "owner manages" on public.published_journey_levels
+  for all using (
+    exists (select 1 from public.published_journeys j where j.id = journey_id and j.owner_id = auth.uid())
+  ) with check (
+    exists (select 1 from public.published_journeys j where j.id = journey_id and j.owner_id = auth.uid())
+  );
+
+grant select, insert, update, delete on public.published_journeys, public.published_journey_levels to authenticated;
+
+-- Publish = copy the trail as it is right now (no progress state)
+create or replace function public.publish_task(p_task_id uuid, p_author_name text)
+returns uuid
+language plpgsql
+security invoker
+as $$
+declare
+  v_task public.tasks%rowtype;
+  v_journey_id uuid;
+begin
+  select * into v_task from public.tasks where id = p_task_id and user_id = auth.uid();
+  if not found then
+    raise exception 'Trail not found';
+  end if;
+
+  delete from public.published_journeys where source_task_id = p_task_id;
+
+  insert into public.published_journeys (owner_id, source_task_id, title, subject, branch, estimated_minutes, author_name)
+  values (auth.uid(), v_task.id, v_task.title, v_task.subject, v_task.branch, v_task.estimated_minutes, nullif(trim(p_author_name), ''))
+  returning id into v_journey_id;
+
+  insert into public.published_journey_levels (journey_id, title, description, estimated_minutes, branch_order)
+  select v_journey_id, l.title, l.description, l.estimated_minutes,
+         (row_number() over (order by l.branch_order) - 1)::int
+  from public.levels l
+  where l.task_id = p_task_id and l.user_id = auth.uid();
+
+  update public.tasks set is_public = true, author_name = nullif(trim(p_author_name), '') where id = p_task_id;
+  return v_journey_id;
+end;
+$$;
+
+create or replace function public.unpublish_task(p_task_id uuid)
+returns void
+language plpgsql
+security invoker
+as $$
+begin
+  delete from public.published_journeys where source_task_id = p_task_id and owner_id = auth.uid();
+  update public.tasks set is_public = false, author_name = null where id = p_task_id and user_id = auth.uid();
+end;
+$$;
+
+grant execute on function public.publish_task(uuid, text) to authenticated;
+grant execute on function public.unpublish_task(uuid) to authenticated;
+
+-- One-time backfill so trails that are already public don't vanish from the gallery
+insert into public.published_journeys (owner_id, source_task_id, title, subject, branch, estimated_minutes, author_name)
+select user_id, id, title, subject, branch, estimated_minutes, author_name
+from public.tasks where is_public = true
+on conflict (source_task_id) do nothing;
+
+insert into public.published_journey_levels (journey_id, title, description, estimated_minutes, branch_order)
+select pj.id, l.title, l.description, l.estimated_minutes,
+       (row_number() over (partition by pj.id order by l.branch_order) - 1)::int
+from public.published_journeys pj
+join public.levels l on l.task_id = pj.source_task_id
+where not exists (select 1 from public.published_journey_levels x where x.journey_id = pj.id);

@@ -127,15 +127,30 @@ export async function getTasksForPlan(planId: string): Promise<Task[]> {
   return (data || []) as Task[];
 }
 
+function journeyToTask(j: any): Task {
+  return {
+    id: j.id,
+    user_id: j.owner_id,
+    plan_id: '',
+    title: j.title,
+    subject: j.subject ?? '',
+    due_date: '',
+    branch: j.branch,
+    estimated_minutes: j.estimated_minutes ?? 25,
+    is_public: true,
+    author_name: j.author_name,
+  };
+}
+
+
 // Toggles a custom task's "Public Journey" flag. Only the owner can do
 // this (still governed by the "owner full access" RLS policy) — captures
 // a display name at the moment it's published so the gallery never has to
 // touch auth.users directly.
 export async function setTaskPublic(taskId: string, isPublic: boolean, authorName: string): Promise<void> {
-  const { error } = await supabase
-    .from('tasks')
-    .update({ is_public: isPublic, author_name: isPublic ? authorName : null })
-    .eq('id', taskId);
+  const { error } = isPublic
+    ? await supabase.rpc('publish_task', { p_task_id: taskId, p_author_name: authorName })
+    : await supabase.rpc('unpublish_task', { p_task_id: taskId });
   if (error) throw error;
 }
 
@@ -144,49 +159,66 @@ export async function setTaskPublic(taskId: string, isPublic: boolean, authorNam
 // guest (anonymous-auth) session alike, since both carry a real auth.uid().
 export async function getPublicTasks(): Promise<Task[]> {
   const { data, error } = await supabase
-    .from('tasks')
+    .from('published_journeys')
     .select('*')
-    .eq('is_public', true)
     .order('created_at', { ascending: false })
     .limit(60);
   if (error) throw error;
-  return (data || []) as Task[];
+  return (data || []).map(journeyToTask);
 }
 
 // Fetches a single public task by id — powers the new shareable
 // /journeys/:taskId URL. Returns null (rather than throwing) if the task
 // doesn't exist or isn't public, so the detail page can render a clean
 // "not found" state instead of a raw error.
-export async function getPublicTaskById(taskId: string): Promise<Task | null> {
+// Accepts either the snapshot id or the original task id, so links people
+// already shared (which used the task id) keep working.
+export async function getPublicTaskById(id: string): Promise<Task | null> {
   const { data, error } = await supabase
-    .from('tasks')
+    .from('published_journeys')
     .select('*')
-    .eq('id', taskId)
-    .eq('is_public', true)
+    .or(`id.eq.${id},source_task_id.eq.${id}`)
     .maybeSingle();
   if (error) throw error;
-  return (data as Task) || null;
+  return data ? journeyToTask(data) : null;
 }
 
-export async function getPublicLevelCounts(taskIds: string[]): Promise<Record<string, number>> {
-  if (taskIds.length === 0) return {};
-  const { data, error } = await supabase.from('levels').select('task_id').in('task_id', taskIds);
+export async function getPublicLevelCounts(journeyIds: string[]): Promise<Record<string, number>> {
+  if (journeyIds.length === 0) return {};
+  const { data, error } = await supabase
+    .from('published_journey_levels')
+    .select('journey_id')
+    .in('journey_id', journeyIds);
   if (error) throw error;
   const counts: Record<string, number> = {};
   (data || []).forEach((row: any) => {
-    if (row.task_id) counts[row.task_id] = (counts[row.task_id] || 0) + 1;
+    counts[row.journey_id] = (counts[row.journey_id] || 0) + 1;
   });
   return counts;
 }
 
-export async function getPublicLevelsForTask(taskId: string): Promise<Level[]> {
+export async function getPublicLevelsForTask(journeyId: string): Promise<Level[]> {
   const { data, error } = await supabase
-    .from('levels')
+    .from('published_journey_levels')
     .select('*')
-    .eq('task_id', taskId)
+    .eq('journey_id', journeyId)
     .order('branch_order', { ascending: true });
   if (error) throw error;
-  return (data || []) as Level[];
+  return (data || []).map((l: any, idx: number) => ({
+    id: l.id,
+    task_id: l.journey_id,
+    user_id: '',
+    title: l.title,
+    description: l.description ?? '',
+    estimated_minutes: l.estimated_minutes,
+    branch: 'custom',
+    branch_order: l.branch_order,
+    status: idx === 0 ? 'active' : 'locked',
+    skipped: false,
+    completed_at: null,
+    depth: 0,
+    parent_level_id: null,
+  })) as Level[];
 }
 
 // One-click "fork" — copies a public journey into the current user's own

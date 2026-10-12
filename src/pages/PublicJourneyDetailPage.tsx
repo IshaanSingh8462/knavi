@@ -66,7 +66,7 @@ export default function PublicJourneyDetailPage() {
           if (!cancelled) setNotFound(true);
           return;
         }
-        const fetchedLevels = await getPublicLevelsForTask(taskId);
+        const fetchedLevels = await getPublicLevelsForTask(fetchedTask.id);
         if (!cancelled) {
           setTask(fetchedTask);
           setLevels(fetchedLevels);
